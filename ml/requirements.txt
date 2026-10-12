@@ -1,0 +1,11 @@
+# Training happens on laptops / Colab, not on the Pi
+tensorflow>=2.16
+tensorflow-hub
+ai-edge-litert
+librosa
+numpy
+pandas
+scikit-learn
+matplotlib
+mlflow
+jupyterlab

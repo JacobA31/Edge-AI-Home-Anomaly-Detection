@@ -1,0 +1,10 @@
+{
+  "event_id": "3f2b8c1e-6a4d-4f7e-9b1a-2c5d8e9f0a1b",
+  "device_id": "pi-livingroom-01",
+  "event_type": "fall",
+  "room": "living room",
+  "detected_at": "2026-11-02T14:05:12Z",
+  "elapsed_seconds": 3.4,
+  "confidence": 0.91,
+  "details": { "label": "thud", "followed_by_silence": true }
+}

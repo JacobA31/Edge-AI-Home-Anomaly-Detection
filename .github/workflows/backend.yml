@@ -1,0 +1,94 @@
+name: Backend (Azure Functions)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "shared/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "shared/**"
+      - ".github/workflows/backend.yml"
+  workflow_dispatch:
+
+# Never run two backend deploys at the same time
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.11"
+  AZURE_FUNCTIONAPP_NAME: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
+  # Full https URL of the Function App, e.g. https://e3-api-abc123.canadacentral-01.azurewebsites.net
+  AZURE_FUNCTIONAPP_URL: ${{ vars.AZURE_FUNCTIONAPP_URL }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: Copy shared files into the backend package
+        run: cp -r ../shared ./shared
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest -q
+
+  deploy:
+    # Only deploy on merges to main (or a manual run), never on pull requests
+    if: github.event_name != 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy shared files into the backend package
+        run: cp -r shared backend/shared
+
+      - name: Deploy to Azure Functions (Flex Consumption)
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+          package: backend
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+          sku: flexconsumption
+          remote-build: true
+
+      - name: Apply database migrations
+        # Calls the admin-only migrate function that runs inside Azure,
+        # so the database firewall only has to allow Azure services.
+        env:
+          MIGRATE_KEY: ${{ secrets.AZURE_FUNCTIONAPP_MIGRATE_KEY }}
+        run: |
+          if [ -z "$MIGRATE_KEY" ]; then
+            echo "::warning::AZURE_FUNCTIONAPP_MIGRATE_KEY not set, skipping migrations"
+            exit 0
+          fi
+          # Give the new deployment a moment to start
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o response.json -w "%{http_code}" -X POST \
+              -H "x-functions-key: $MIGRATE_KEY" \
+              "${AZURE_FUNCTIONAPP_URL}/api/admin/migrate")
+            if [ "$code" = "200" ]; then cat response.json; exit 0; fi
+            echo "Attempt $i returned $code, retrying in 20s"; sleep 20
+          done
+          cat response.json; exit 1

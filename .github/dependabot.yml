@@ -1,0 +1,14 @@
+# Opens a PR once a month when a dependency has an update. Delete this file if it gets noisy.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: { interval: monthly }
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: monthly }
+    groups:
+      all-frontend: { patterns: ["*"] }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }

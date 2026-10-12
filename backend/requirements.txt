@@ -1,0 +1,4 @@
+# Installed in Azure by the remote build. Keep this list short: it affects cold-start time.
+azure-functions
+jsonschema>=4.23
+psycopg[binary]>=3.2

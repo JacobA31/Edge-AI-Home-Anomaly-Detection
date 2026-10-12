@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "charliermarsh.ruff",
+    "ms-azuretools.vscode-azurefunctions",
+    "ms-azuretools.vscode-azurestaticwebapps",
+    "dbaeumer.vscode-eslint",
+    "ms-vscode-remote.remote-ssh",
+    "github.vscode-github-actions"
+  ]
+}

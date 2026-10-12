@@ -1,0 +1,17 @@
+# systemd unit: starts E3 on boot and restarts it after crashes.
+# Install:  sudo cp edge/deploy/e3-edge.service /etc/systemd/system/ && sudo systemctl enable --now e3-edge
+[Unit]
+Description=E3 edge monitor
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+User=e3
+WorkingDirectory=/opt/e3/edge
+ExecStart=/opt/e3/edge/.venv/bin/python -m e3_edge
+Restart=always
+RestartSec=5
+StateDirectory=e3
+
+[Install]
+WantedBy=multi-user.target

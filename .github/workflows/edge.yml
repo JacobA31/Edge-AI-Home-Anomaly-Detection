@@ -1,0 +1,42 @@
+name: Edge (Raspberry Pi code)
+
+# Not deployed by CI: the Pi pulls main itself (see edge/deploy/update.sh).
+# This only makes sure main always has working edge code.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "edge/**"
+      - "shared/**"
+      - ".github/workflows/edge.yml"
+  pull_request:
+    paths:
+      - "edge/**"
+      - "shared/**"
+      - ".github/workflows/edge.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: edge
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11" # Raspberry Pi OS Bookworm ships 3.11
+          cache: pip
+          cache-dependency-path: edge/pyproject.toml
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest -q

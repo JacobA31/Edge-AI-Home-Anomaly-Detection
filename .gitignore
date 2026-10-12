@@ -1,0 +1,57 @@
+# ---------- Privacy: never commit audio or datasets ----------
+*.wav
+*.flac
+*.mp3
+*.m4a
+*.ogg
+*.raw
+ml/data/*
+!ml/data/README.md
+ml/models/*
+!ml/models/README.md
+mlruns/
+
+# ---------- Secrets ----------
+.env
+.env.*
+!.env.example
+local.settings.json
+*.PublishSettings
+edge/config.yaml
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.python_packages/
+
+# ---------- Node ----------
+node_modules/
+dist/
+*.tsbuildinfo
+
+# ---------- Azure Functions ----------
+backend/shared/
+.azurite/
+__azurite_db*
+__blobstorage__/
+__queuestorage__/
+
+# ---------- Edge runtime files ----------
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.log
+
+# ---------- OS / editors ----------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

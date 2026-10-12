@@ -1,0 +1,12 @@
+# Tool settings only (Azure uses requirements.txt, not this file)
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+extend-exclude = ["shared"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

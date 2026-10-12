@@ -1,0 +1,16 @@
+# Copy to edge/config.yaml on the Pi (git-ignored) and fill in the secrets.
+device_id: pi-livingroom-01
+room: living room
+
+backend:
+  url: https://YOUR-FUNCTION-APP.azurewebsites.net   # same as AZURE_FUNCTIONAPP_URL
+  function_key: CHANGE_ME                             # key for POST /api/events
+
+audio:
+  sample_rate: 16000
+  device: ReSpeaker   # part of the input device name; see `python -m sounddevice`
+
+storage:
+  queue_db: /var/lib/e3/queue.sqlite                  # offline event queue (no audio, ever)
+
+heartbeat_seconds: 90

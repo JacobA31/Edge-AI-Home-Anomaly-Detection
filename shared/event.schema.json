@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://e3.local/schemas/event.schema.json",
+  "title": "E3 event",
+  "description": "The only data that leaves the Raspberry Pi. Never contains raw audio (proposal sections 1.5 and 1.12).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "device_id", "event_type", "room", "detected_at", "elapsed_seconds"],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Generated on the Pi, so retries after an outage don't create duplicates"
+    },
+    "device_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "event_type": {
+      "type": "string",
+      "enum": ["fall", "anomaly", "inactivity", "heartbeat", "device_muted", "device_unmuted"]
+    },
+    "room": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the Pi detected the event (UTC, ISO 8601)"
+    },
+    "elapsed_seconds": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Seconds since detection at the time the event was sent"
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "details": {
+      "type": "object",
+      "description": "Small extra info, e.g. {\"label\": \"thud\"}. Never audio or transcripts.",
+      "maxProperties": 10
+    }
+  }
+}

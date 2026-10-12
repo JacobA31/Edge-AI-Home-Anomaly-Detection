@@ -1,0 +1,12 @@
+# Each folder's owner is asked to review PRs that touch it.
+# Replace the placeholders with GitHub usernames, e.g. @JacobA31.
+# The last matching line wins.
+
+*                @MEMBER5_USERNAME @MEMBER1_USERNAME
+
+/backend/        @MEMBER5_USERNAME
+/frontend/       @MEMBER5_USERNAME
+/edge/           @MEMBER1_USERNAME
+/ml/             @MEMBER2_USERNAME @MEMBER3_USERNAME @MEMBER4_USERNAME
+/shared/         @MEMBER1_USERNAME @MEMBER5_USERNAME
+/.github/        @MEMBER1_USERNAME @MEMBER5_USERNAME

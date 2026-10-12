@@ -1,0 +1,30 @@
+name: ML (lint only, never deployed)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ml/**"
+      - ".github/workflows/ml.yml"
+  pull_request:
+    paths:
+      - "ml/**"
+      - ".github/workflows/ml.yml"
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Lint scripts and notebooks
+        run: |
+          pip install ruff nbstripout
+          ruff check ml
+          # Fail if a notebook was committed with outputs (keeps diffs small and avoids leaking data)
+          find ml -name "*.ipynb" -not -path "*/.ipynb_checkpoints/*" -print0 | xargs -0 -r nbstripout --verify

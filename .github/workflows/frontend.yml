@@ -1,0 +1,71 @@
+name: Frontend (Static Web Apps)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "shared/**"
+      - ".github/workflows/frontend.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - "shared/**"
+      - ".github/workflows/frontend.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint and type-check
+        run: npm run lint && npm run typecheck
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ vars.AZURE_FUNCTIONAPP_URL }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: dist # already built above
+          api_location: ""   # our API is the separate Function App in backend/
+          skip_app_build: true
+          skip_api_build: true
