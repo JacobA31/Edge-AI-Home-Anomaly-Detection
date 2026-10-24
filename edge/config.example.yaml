@@ -14,3 +14,18 @@ storage:
   queue_db: /var/lib/e3/queue.sqlite                  # offline event queue (no audio, ever)
 
 heartbeat_seconds: 90
+
+# Baseline + anomaly detection. Every setting is optional; the full list with defaults is in
+# src/e3_edge/anomaly/config.py, and docs/anomaly-detection.md explains them.
+anomaly:
+  timezone: America/Toronto        # time-of-day periods and hourly stats use local time
+  baseline_path: /var/lib/e3/baseline.npz       # learned baseline (stays on the Pi)
+  checkpoint_path: /var/lib/e3/calibration.npz  # calibration progress, survives restarts
+  calibration:
+    stats_seconds: 259200          # 3 days of audio to learn the household's sounds
+    threshold_seconds: 86400       # then 1 day to set the anomaly threshold
+  # embedding:
+  #   contexts: category           # global | category | period
+  #   frame_quantile: 0.999        # share of normal frames allowed above the threshold
+  # adaptation:
+  #   enabled: false               # proposal 1.7.3.3: static baseline during evaluation

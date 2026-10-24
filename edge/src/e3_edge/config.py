@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -15,6 +15,7 @@ class Config:
     queue_db: str
     sample_rate: int = 16000
     heartbeat_seconds: int = 90
+    anomaly: dict = field(default_factory=dict)  # raw `anomaly:` section, see e3_edge.anomaly.config
 
 
 def load(path: Path = DEFAULT_PATH) -> Config:
@@ -27,4 +28,5 @@ def load(path: Path = DEFAULT_PATH) -> Config:
         queue_db=raw["storage"]["queue_db"],
         sample_rate=raw.get("audio", {}).get("sample_rate", 16000),
         heartbeat_seconds=raw.get("heartbeat_seconds", 90),
+        anomaly=raw.get("anomaly") or {},
     )
