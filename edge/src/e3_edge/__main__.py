@@ -2,7 +2,9 @@
 
 TODO(member1): audio capture thread (sounddevice → ring buffer)
 TODO(member3): fall model (YAMNet embeddings + classifier, LiteRT)
-TODO(member4): baseline + anomaly detection
+Baseline + anomaly detection is ready in e3_edge.anomaly (AnomalyService, one per microphone).
+TODO(member1/member4): once YAMNet frames exist, pass each one to AnomalyService.process()
+  and hand the result to the event manager; see docs/anomaly-detection.md, "Integration".
 """
 
 import logging

@@ -13,7 +13,9 @@ edge/
 │   ├── config.py       reads config.yaml
 │   ├── events.py       builds events that match shared/event.schema.json
 │   ├── outbox.py       SQLite queue for outages (events only, never audio)
-│   └── sender.py       HTTPS POST to the backend with retries
+│   ├── sender.py       HTTPS POST to the backend with retries
+│   └── anomaly/        household baseline + acoustic/behavioural anomaly detection
+│                       (docs/anomaly-detection.md; CLI: python -m e3_edge.anomaly)
 ├── tests/
 ├── deploy/
 │   ├── e3-edge.service systemd unit (auto-start, auto-restart)
@@ -43,3 +45,15 @@ sudo cp deploy/e3-edge.service /etc/systemd/system/
 
 After that, `/opt/e3/edge/deploy/update.sh` installs whatever is on `main`.
 Models (`.tflite`) come from the GitHub Release made by the ML team, not from Git history.
+
+## Anomaly module on the Pi
+
+The household baseline is learned on the Pi itself (3 days + 1 day of audio by default) and
+saved to `/var/lib/e3/baseline.npz`; it never leaves the device. To check the module's speed,
+memory and model size on the Pi:
+
+```bash
+.venv/bin/python -m e3_edge.anomaly bench                 # per-frame latency, RSS, baseline size
+.venv/bin/python -m e3_edge.anomaly bench --soak-days 7   # also a simulated week (NF4)
+.venv/bin/python -m e3_edge.anomaly info /var/lib/e3/baseline.npz
+```
