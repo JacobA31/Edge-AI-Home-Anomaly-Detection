@@ -1,4 +1,5 @@
 # Training happens on laptops / Colab, not on the Pi
+-e ../edge  # the anomaly evaluation runs the edge code itself (install from inside ml/)
 tensorflow>=2.16
 tensorflow-hub
 ai-edge-litert

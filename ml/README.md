@@ -31,3 +31,17 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 jupyter lab
 ```
+
+## Anomaly detection evaluation
+
+`src/anomaly/` evaluates the edge anomaly module (it runs the edge code itself, installed by
+`-e ../edge` in requirements.txt). Design and protocol: [docs/anomaly-detection.md](../docs/anomaly-detection.md).
+
+```bash
+# SINS replay: calibrate on early days, test on later ones, SAFE falls as anomalies
+python -m src.anomaly.evaluate --calibration data/sins/living/day{1,2,3,4}.npz \
+    --test data/sins/living/day{5,6,7}.npz --falls data/safe/falls.npz --out reports/anomaly
+# smoke test of the harness on simulated frames (numbers mean nothing)
+python -m src.anomaly.evaluate --synthetic --out reports/anomaly-synthetic
+pytest -q                      # harness tests (CI runs them without TensorFlow)
+```
