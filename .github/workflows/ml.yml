@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - "ml/**"
+      - "edge/src/e3_edge/anomaly/**" # the anomaly evaluation runs the edge code
       - ".github/workflows/ml.yml"
   pull_request:
     paths:
       - "ml/**"
+      - "edge/src/e3_edge/anomaly/**"
       - ".github/workflows/ml.yml"
   workflow_dispatch:
 
@@ -28,3 +30,24 @@ jobs:
           ruff check ml
           # Fail if a notebook was committed with outputs (keeps diffs small and avoids leaking data)
           find ml -name "*.ipynb" -not -path "*/.ipynb_checkpoints/*" -print0 | xargs -0 -r nbstripout --verify
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ml
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: edge/pyproject.toml
+
+      # Only what the tests import (the edge package, numpy, scikit-learn), not TensorFlow
+      - name: Install
+        run: pip install -e ../edge numpy scikit-learn pytest
+
+      - name: Test
+        run: pytest -q
