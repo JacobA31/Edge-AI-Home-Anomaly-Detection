@@ -154,7 +154,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("input", type=Path, help="One WAV recording to replay")
     parser.add_argument("--model", type=Path, default=DEFAULT_MODEL, help="Exported YAMNet .tflite file")
-    parser.add_argument("--start-time", type=float, default=0.0, help="Replay start in Unix seconds (default: 0)")
+    parser.add_argument(
+        "--start-time", type=float, default=0.0, help="Replay start in Unix seconds (default: 0)",
+    )
     args = parser.parse_args(argv)
     try:
         result = compare_recording(args.input, args.model, start_time=args.start_time)
