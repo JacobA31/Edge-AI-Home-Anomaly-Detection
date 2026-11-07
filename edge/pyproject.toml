@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Installed on the Pi only (audio + model runtime). Not needed for CI tests.
+# Dependencies for Pi audio capture and model inference.
 pi = [
     "numpy",
     "sounddevice",
@@ -21,6 +21,7 @@ pi = [
 ]
 dev = [
     "numpy",  # the anomaly module's tests need it (on the Pi it comes with `pi`)
+    "ai-edge-litert",  # also run YAMNet model checks on laptops
     "pytest>=8",
     "ruff>=0.6",
 ]

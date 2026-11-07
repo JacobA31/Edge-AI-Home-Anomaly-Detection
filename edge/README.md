@@ -32,6 +32,20 @@ pip install -e ".[dev]"          # add ,pi to also get audio + LiteRT
 pytest
 ```
 
+### YAMNet runner tests
+
+Run from `edge/` with its virtual environment activated. Unit tests skip the real-model check:
+
+```bash
+python -m pytest tests/test_audio_yamnet.py -q
+```
+
+After exporting YAMNet in `ml/`, include the real-model check:
+
+```bash
+E3_YAMNET_MODEL=../ml/models/yamnet.tflite python -m pytest tests/test_audio_yamnet.py -q
+```
+
 ## First-time Pi setup
 
 ```bash
