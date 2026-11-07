@@ -45,9 +45,9 @@ jobs:
           cache: pip
           cache-dependency-path: edge/pyproject.toml
 
-      # Only what the tests import (the edge package, numpy, scikit-learn), not TensorFlow
+      # Tests mock YAMNet inference and exercise WAV loading without TensorFlow.
       - name: Install
-        run: pip install -e ../edge numpy scikit-learn pytest
+        run: pip install -e ../edge numpy scikit-learn librosa certifi pytest
 
       - name: Test
         run: pytest -q

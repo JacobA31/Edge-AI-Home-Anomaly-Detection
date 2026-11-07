@@ -239,10 +239,13 @@ def evaluate(calib: FrameStream, test: FrameStream, falls: FrameStream | None, *
     results: dict[str, Any] = {"data": {
         "calibration_hours": round(hours(calib, cfg), 2), "test_hours": round(hours(test, cfg), 2),
         "fall_frames": 0 if falls is None else len(falls), "embedding_dim": calib.dim,
-        "class_scores": has_scores, "levels": calib.level_dbfs is not None}}
+        "class_scores": has_scores, "levels": calib.level_dbfs is not None,
+        "timezone": cfg.timezone}}
     if "frame_level" in parts:
-        results["frame_level"] = frame_level(methods or default_methods(has_scores), calib, test, falls, cfg,
-                                             quantile, max_test_frames, seed)
+        results["frame_level"] = frame_level(
+            methods or default_methods(has_scores, cfg), calib, test, falls, cfg,
+            quantile, max_test_frames, seed,
+        )
     if "behavioural" in parts:
         baseline = calibrate_edge(calib, cfg, "category" if has_scores else "global")
         results["behavioural"] = behavioural(baseline, test, falls, cfg, per_kind, seed)
@@ -307,6 +310,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--parts", nargs="+", default=list(PARTS), choices=PARTS)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--mlflow", action="store_true", help="also log metrics to MLflow")
+    p.add_argument("--timezone", default="UTC", help="Local timezone for routines, e.g. Europe/Brussels")
     p.add_argument("--out", type=Path, required=True)
     args = p.parse_args(argv)
 
@@ -320,7 +324,8 @@ def main(argv: list[str] | None = None) -> int:
         falls = FrameStream.load(args.falls) if args.falls else None
     if args.decimate > 1:
         calib, test = _every(calib, args.decimate), _every(test, args.decimate)
-    results = evaluate(calib, test, falls, quantile=args.quantile, per_kind=args.per_kind,
+    results = evaluate(calib, test, falls, cfg=AnomalyConfig(timezone=args.timezone),
+                       quantile=args.quantile, per_kind=args.per_kind,
                        parts=tuple(args.parts), seed=args.seed)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "results.json").write_text(json.dumps(results, indent=2))

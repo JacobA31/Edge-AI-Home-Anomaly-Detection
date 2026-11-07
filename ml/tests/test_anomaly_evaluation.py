@@ -4,16 +4,24 @@ import json
 
 import numpy as np
 import pytest
-from e3_edge.anomaly import FrameStream
+from e3_edge.anomaly import AnomalyConfig, FrameStream
 from e3_edge.anomaly.categories import DEFAULT_CATEGORIES, CategoryMapper
 from e3_edge.anomaly.simulate import FALL, HouseholdSimulator
 
 from src.anomaly import metrics
 from src.anomaly.evaluate import concat, evaluate, main, report
 from src.anomaly.inject import Planter, clips
-from src.anomaly.methods import EdgeBaseline, Euclidean, KMeansSelective, KNNScorer
+from src.anomaly.methods import EdgeBaseline, Euclidean, KMeansSelective, KNNScorer, default_methods
 
 DAY = 86400.0
+
+
+def test_default_edge_methods_share_the_requested_local_timezone():
+    cfg = AnomalyConfig(timezone="Europe/Brussels")
+    methods = default_methods(True, cfg)
+    edge_methods = [method for method in methods if isinstance(method, EdgeBaseline)]
+    assert len(edge_methods) == 4
+    assert all(method.cfg.timezone == "Europe/Brussels" for method in edge_methods)
 
 
 @pytest.fixture(scope="module")
@@ -92,7 +100,9 @@ def test_cli_on_files_with_decimation(data, tmp_path):
     assert concat(parts).timestamps[0] == 0  # sorted by time, not by argument order
     assert main(["--calibration", str(tmp_path / "c1.npz"), str(tmp_path / "c2.npz"), "--test",
                  str(tmp_path / "t.npz"), "--falls", str(tmp_path / "f.npz"), "--decimate", "2",
-                 "--parts", "frame_level", "--out", str(tmp_path / "out")]) == 0
+                 "--parts", "frame_level", "--timezone", "Europe/Brussels",
+                 "--out", str(tmp_path / "out")]) == 0
     results = json.loads((tmp_path / "out" / "results.json").read_text())
     assert results["data"]["calibration_hours"] == pytest.approx(48, abs=0.1)
+    assert results["data"]["timezone"] == "Europe/Brussels"
     assert (tmp_path / "out" / "report.md").read_text().startswith("# Anomaly detection evaluation")

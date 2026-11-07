@@ -165,11 +165,13 @@ class KNNScorer(Scorer):
         return self.bank * self.pca.n_components_ * 4 + self.pca.components_.nbytes
 
 
-def default_methods(has_scores: bool) -> list[Scorer]:
-    methods: list[Scorer] = [EdgeBaseline("global"), EdgeBaseline("global", n_components=64),
-                             EdgeBaseline("period")]
+def default_methods(has_scores: bool, cfg: AnomalyConfig | None = None) -> list[Scorer]:
+    methods: list[Scorer] = [
+        EdgeBaseline("global", cfg=cfg), EdgeBaseline("global", n_components=64, cfg=cfg),
+        EdgeBaseline("period", cfg=cfg),
+    ]
     if has_scores:
-        methods.insert(0, EdgeBaseline("category"))
+        methods.insert(0, EdgeBaseline("category", cfg=cfg))
     return methods + [KMeansSelective(), IsolationForestScorer(), KNNScorer(), Euclidean()]
 
 
