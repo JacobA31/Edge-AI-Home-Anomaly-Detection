@@ -82,9 +82,12 @@ class BaselineCalibrator:
         if self.phase == DONE:
             return
         t = frame.t
-        if self.last_t is not None and t <= self.last_t:
-            raise ValueError("frames must arrive in time order")
-        gap = self.last_t is None or t - self.last_t > self.cfg.max_gap_seconds
+        # The clock stepping back (an NTP correction, or a checkpoint from before a clock reset)
+        # counts as a gap, as in detection. Raising here would crash-loop the service on restart.
+        backwards = self.last_t is not None and t <= self.last_t
+        if backwards:
+            log.warning("Calibration: clock went back %.1f s; treating it as a gap", self.last_t - t)
+        gap = self.last_t is None or backwards or t - self.last_t > self.cfg.max_gap_seconds
         self.observed += self.cfg.frame_seconds if gap else t - self.last_t
         self.last_t = t
         self.first_t = t if self.first_t is None else self.first_t

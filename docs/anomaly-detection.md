@@ -73,7 +73,8 @@ the official `yamnet_class_map.csv`). Episodes use hysteresis (`on`/`off`) and t
 | Sustained unusual sound | uses the embedding threshold | ≥ 50% of a 30 s window anomalous, ≥ 10 frames | `sustained_unusual_sound` (anomaly, alert) |
 
 "Activity" for the silence checks is "louder than the learned noise floor + 6 dB, or any category
-present". Following 1.7.4, silence is only ever evidence. Confidence carries the trigger's
+present" (calibration uses the floor measured so far, so both phases agree). A post-impact watch
+ends when more than 20% of it, or more than half of the last 30 s, was active. Following 1.7.4, silence is only ever evidence. Confidence carries the trigger's
 strength: 0.3 for a familiar thud, the anomaly level for an unfamiliar one, the classifier's
 confidence for a fall candidate.
 

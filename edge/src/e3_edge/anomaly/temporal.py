@@ -252,6 +252,8 @@ class ImpactRate:
 
 
 INHERIT_SECONDS = 10.0  # the fall-event budget of NF1
+MIN_FLOOR_FRAMES = 100  # frame levels needed before the room's noise floor is trusted
+FLOOR_UPDATE_FRAMES = 500  # while learning, re-estimate the floor this often (~4 min of frames)
 
 
 @dataclass
@@ -262,6 +264,7 @@ class _QuietRun:
     observed: float = 0.0
     active: float = 0.0
     short_done: bool = False
+    recent: deque = field(default_factory=deque)  # (t, active seconds) over the last recent_seconds
 
 
 class PostImpactMonitor:
@@ -306,6 +309,14 @@ class PostImpactMonitor:
             return []
         run.observed += dt
         run.active += dt if active else 0.0
+        run.recent.append((t, dt if active else 0.0))
+        while run.recent[0][0] <= t - self.cfg.recent_seconds:
+            run.recent.popleft()
+        # The share since the impact barely moves late in a long watch (20 s of walking after
+        # 90 s of quiet is 18%), so someone moving about now also ends it.
+        if sum(a for _, a in run.recent) > self.cfg.max_recent_active_fraction * self.cfg.recent_seconds:
+            self._finish()
+            return []
         if run.observed < self.cfg.short_seconds:
             return []
         if run.active / run.observed > self.cfg.max_active_fraction:
@@ -444,12 +455,19 @@ class TemporalThresholds:
         return cls(**d)
 
 
+def learned_noise_floor(levels: list[float], cfg: AnomalyConfig) -> float | None:
+    """The room's noise floor from frame levels (dBFS), or None while there are too few."""
+    if len(levels) < MIN_FLOOR_FRAMES:
+        return None
+    return float(np.quantile(levels, cfg.activity.noise_floor_quantile))
+
+
 def derive_thresholds(stats: TemporalStats, cfg: AnomalyConfig) -> TemporalThresholds:
     sources = {}
 
     levels = stats.levels["items"]
-    if len(levels) >= 100:
-        floor = float(np.quantile(levels, cfg.activity.noise_floor_quantile))
+    floor = learned_noise_floor(levels, cfg)
+    if floor is not None:
         sources["noise_floor"] = f"learned from {len(levels)} frames"
     else:
         floor = cfg.activity.default_noise_floor_dbfs
@@ -555,6 +573,11 @@ class TemporalEngine:
             }
         th = thresholds
         self.noise_floor = th.noise_floor_dbfs if th else cfg.activity.default_noise_floor_dbfs
+        # While learning, "active" uses the floor measured so far, as detection will, instead of
+        # the default: in a room with a fan at -40 dBFS every frame would count as activity.
+        self._floor_countdown = 0
+        if learn:
+            self._update_floor()
         self.water = ProlongedSound(cfg.water, th.prolonged_seconds) if th else None
         self.impacts = ImpactRate(cfg.impacts, th.impact_counts if th else None,
                                   th.impact_default if th else None, self._res.get("impacts"))
@@ -588,7 +611,9 @@ class TemporalEngine:
 
     def process(self, t: float, class_scores: np.ndarray | None, level_dbfs: float | None,
                 anomalous: bool | None = None, anomaly_level: float = 0.0) -> TemporalResult:
-        if self.last_t is not None and t - self.last_t > self.cfg.max_gap_seconds:
+        # A long gap, or the clock stepping back (an NTP correction), breaks the patterns in
+        # progress; a negative time step would otherwise be counted as quiet or episode time.
+        if self.last_t is not None and (t <= self.last_t or t - self.last_t > self.cfg.max_gap_seconds):
             self.interrupt()
         dt = self.cfg.frame_seconds if self.last_t is None else t - self.last_t
         self.last_t = t
@@ -621,6 +646,9 @@ class TemporalEngine:
                 row[self.mapper.names.index(name)] += dt
             if level_dbfs is not None:
                 self._res["levels"].add(float(level_dbfs))
+                self._floor_countdown -= 1
+                if self._floor_countdown <= 0:
+                    self._update_floor()
 
         findings: list[Finding] = []
         hit = self.impacts.update(t, impact_onset, period)
@@ -639,6 +667,12 @@ class TemporalEngine:
             if hit:
                 findings.append(hit)
         return TemporalResult(active, tuple(present), findings)
+
+    def _update_floor(self) -> None:
+        self._floor_countdown = FLOOR_UPDATE_FRAMES
+        floor = learned_noise_floor(self._res["levels"].items, self.cfg)
+        if floor is not None:
+            self.noise_floor = floor
 
     def _learn_episode(self, category: str, duration: float) -> None:
         if self.stats is None:

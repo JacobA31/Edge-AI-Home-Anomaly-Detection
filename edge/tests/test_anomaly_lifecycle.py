@@ -54,8 +54,8 @@ def test_mute_gaps_do_not_count_as_calibration_time():
         for f in s.frames():
             cal.add(f)
     assert cal.observed == pytest.approx(HOUR, abs=1.0)
-    with pytest.raises(ValueError, match="time order"):
-        cal.add(next(gaussian_stream(0, 1).frames()))
+    cal.add(next(gaussian_stream(0, 1).frames()))  # the clock stepped back: a gap, not an error
+    assert cal.observed == pytest.approx(HOUR + cal.cfg.frame_seconds, abs=1.0)
 
 
 def test_threshold_is_the_held_out_quantile():
@@ -135,6 +135,21 @@ def test_service_calibrates_resumes_after_restart_then_detects(tmp_path, sim):
 
     service = AnomalyService(cfg, mic_id="near")
     assert service.state == "detecting" and service.process(frames[-1]) is not None
+
+
+@pytest.mark.parametrize("damaged", ["baseline", "checkpoint"])
+def test_service_starts_over_instead_of_crashing_on_a_damaged_file(tmp_path, damaged):
+    cfg = calibration_config(baseline_path=str(tmp_path / "baseline.npz"),
+                             checkpoint_path=str(tmp_path / "calibration.npz"))
+    if damaged == "baseline":
+        path = tmp_path / "baseline-near.npz"
+        path.write_bytes(b"PK\x03\x04 cut short by a power loss")
+    else:
+        path = tmp_path / "calibration-near.npz"
+        path.write_bytes(b"")  # empty: np.load raises EOFError
+    service = AnomalyService(cfg, mic_id="near")
+    assert service.state == "calibrating" and service.status()["frames"] == 0
+    assert not path.exists() and path.with_name(path.name + ".damaged").exists()
 
 
 # ---- detector on a scenario day ------------------------------------------------------------

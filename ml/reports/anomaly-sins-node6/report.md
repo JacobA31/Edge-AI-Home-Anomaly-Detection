@@ -18,14 +18,14 @@
 
 | method | edge_ready | auc | pauc_0.1 | tpr_at_fpr_1% | anomalies_caught | anomalies_missed | false_alarm_frames_per_hour | model_mb | score_us_per_frame |
 |---|---|---|---|---|---|---|---|---|---|
-| edge_category | True | 0.8309 | 0.3403 | 0.1169 | 0.026 | 0.974 | 13.38 | 4.94 | 6.0 |
-| edge_global | True | 0.834 | 0.3442 | 0.1425 | 0.0565 | 0.9435 | 13.53 | 4.41 | 1.5 |
-| edge_global_pca64 | True | 0.909 | 0.4427 | 0.1474 | 0.0337 | 0.9663 | 11.89 | 0.47 | 0.6 |
-| edge_period | True | 0.8589 | 0.3848 | 0.1362 | 0.034 | 0.966 | 12.79 | 4.95 | 4.0 |
-| kmeans8_selective | False | 0.8321 | 0.3164 | 0.1099 | 0.0291 | 0.9709 | 11.6 | 5.29 | 6.5 |
+| edge_category | True | 0.8309 | 0.3403 | 0.1169 | 0.026 | 0.974 | 13.38 | 4.94 | 5.2 |
+| edge_global | True | 0.834 | 0.3442 | 0.1425 | 0.0565 | 0.9435 | 13.53 | 4.41 | 1.1 |
+| edge_global_pca64 | True | 0.909 | 0.4427 | 0.1474 | 0.0337 | 0.9663 | 11.89 | 0.47 | 0.5 |
+| edge_period | True | 0.8589 | 0.3848 | 0.1362 | 0.034 | 0.966 | 12.79 | 4.95 | 3.1 |
+| kmeans8_selective | False | 0.8321 | 0.3164 | 0.1099 | 0.0291 | 0.9709 | 11.6 | 5.29 | 10.8 |
 | isolation_forest | False | 0.3716 | 0.0002 | 0.0 | 0.0 | 1.0 | 29.59 |  | 11.0 |
-| knn5_pca64 | False | 0.8532 | 0.357 | 0.1207 | 0.0316 | 0.9684 | 9.81 | 5.38 | 11.9 |
-| euclidean | False | 0.7652 | 0.0021 | 0.0 | 0.0 | 1.0 | 29.74 |  | 0.9 |
+| knn5_pca64 | False | 0.8532 | 0.357 | 0.1207 | 0.0316 | 0.9684 | 9.81 | 5.38 | 9.8 |
+| euclidean | False | 0.7652 | 0.0021 | 0.0 | 0.0 | 1.0 | 29.74 |  | 1.2 |
 
 ## 2. Behavioural detectors
 
@@ -48,7 +48,7 @@ Untouched test days (2.4):
 |---|---|---|---|---|---|
 | prolonged_water:prolonged_water | 10 | 10 | 1.0 | 119.5 | 119.7 |
 | fall:post_impact_silence | 10 | 1 | 0.1 | 10.0 | 10.0 |
-| fall:post_impact_inactivity | 10 | 1 | 0.1 | 2957.7 | 2957.7 |
+| fall:post_impact_inactivity | 10 | 0 | 0.0 |  |  |
 | impact_burst:repeated_impacts | 8 | 8 | 1.0 | 80.2 | 80.4 |
 | other_alerts |  |  |  |  |  |
 

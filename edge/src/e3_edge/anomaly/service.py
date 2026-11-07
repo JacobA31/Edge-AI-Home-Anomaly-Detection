@@ -28,15 +28,24 @@ class AnomalyService:
         self.checkpoint_path = _per_mic(Path(cfg.checkpoint_path), mic_id)
         self.detector: AnomalyDetector | None = None
         self.calibrator: BaselineCalibrator | None = None
+        # A damaged file (cut short by a power loss, or from another version) must not stop the
+        # service from starting: under systemd's Restart=always that is a restart loop. Any error
+        # reading it moves it aside, so the next start doesn't trip over it again.
         if self.baseline_path.exists():
-            self._start_detecting(Baseline.load(self.baseline_path))
-            log.info("Anomaly detection using baseline %s", self.baseline_path)
-        elif self.checkpoint_path.exists():
+            try:
+                self._start_detecting(Baseline.load(self.baseline_path))
+                log.info("Anomaly detection using baseline %s", self.baseline_path)
+            except Exception as exc:
+                log.error("Can't load baseline %s (%r); calibrating again", self.baseline_path, exc)
+                _set_aside(self.baseline_path)
+                self.detector = None
+        if self.detector is None and self.checkpoint_path.exists():
             try:
                 self.calibrator = BaselineCalibrator.resume(self.checkpoint_path, cfg)
                 log.info("Resumed calibration: %s", self.calibrator.progress())
-            except (ValueError, KeyError, OSError) as exc:
-                log.warning("Can't resume calibration (%s); starting over", exc)
+            except Exception as exc:
+                log.warning("Can't resume calibration (%r); starting over", exc)
+                _set_aside(self.checkpoint_path)
         if self.detector is None and self.calibrator is None:
             self.calibrator = BaselineCalibrator(cfg, mic_id=mic_id, checkpoint_path=self.checkpoint_path)
             log.info("No baseline yet: calibrating for %.1f h of audio", self.calibrator.total_seconds / 3600)
@@ -79,6 +88,14 @@ class AnomalyService:
         self.calibrator = None
         self.detector = AnomalyDetector(baseline, self.cfg, mic_id=self.mic_id,
                                         baseline_path=self.baseline_path)
+
+
+def _set_aside(path: Path) -> None:
+    """Renames an unreadable file to <name>.damaged (kept for debugging, replaced next time)."""
+    try:
+        path.replace(path.with_name(path.name + ".damaged"))
+    except OSError as exc:
+        log.warning("Can't move %s aside (%s)", path, exc)
 
 
 def _per_mic(path: Path, mic_id: str | None) -> Path:

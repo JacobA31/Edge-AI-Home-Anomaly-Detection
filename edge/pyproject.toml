@@ -24,6 +24,8 @@ dev = [
     "ai-edge-litert",  # also run YAMNet model checks on laptops
     "pytest>=8",
     "ruff>=0.6",
+    "jsonschema",  # the event-schema test
+    "scikit-learn",  # the OAS-vs-sklearn test
 ]
 
 [tool.setuptools.packages.find]

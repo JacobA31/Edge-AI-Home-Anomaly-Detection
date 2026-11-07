@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from e3_edge.anomaly.categories import CategorySpec
+from e3_edge.anomaly.categories import CategoryMapper, CategorySpec, resolve
 from e3_edge.anomaly.config import (
     AnomalyConfig,
     ImpactRateConfig,
@@ -22,6 +22,7 @@ from e3_edge.anomaly.temporal import (
     ProlongedSound,
     Reservoir,
     SustainedUnusual,
+    TemporalEngine,
     TemporalStats,
     derive_thresholds,
     hours_by_period,
@@ -164,6 +165,51 @@ def test_a_trigger_that_never_goes_quiet_ends_the_watch():
     mon.trigger(0.0, 0.9, "fall_candidate")
     assert quiet_run(mon, 0.0, 60, active=lambda t: True) == []
     assert mon.run is None and samples.items == [0.0]  # learned: no quiet after this impact
+
+
+def test_moving_about_late_in_the_watch_ends_it():
+    # 90 s of quiet, then 20 s of walking: only 18% of the whole watch, but someone is up.
+    mon = PostImpactMonitor(PostImpactConfig(strong_max_seconds=120), extended_seconds=3600)
+    mon.trigger(0.0, 0.95, "fall_candidate")
+    out = quiet_run(mon, 0.0, 200, active=lambda t: 90 <= t < 110)
+    assert [f.kind for f in out] == ["post_impact_silence"] and mon.run is None
+
+
+def test_a_short_noise_does_not_end_the_watch():
+    mon = PostImpactMonitor(PostImpactConfig(strong_max_seconds=120), extended_seconds=3600)
+    mon.trigger(0.0, 0.95, "fall_candidate")
+    out = quiet_run(mon, 0.0, 200, active=lambda t: 60 <= t < 63)  # a cough, a car outside
+    assert [f.kind for f in out] == ["post_impact_silence", "post_impact_inactivity"]
+
+
+def engine(learn=True, **sections):
+    cfg = AnomalyConfig.from_dict(sections)
+    return TemporalEngine(cfg, CategoryMapper(resolve(cfg.categories)), Clock(cfg.timezone, cfg.periods),
+                          learn=learn)
+
+
+def test_clock_stepping_back_is_a_gap_not_negative_time():
+    eng = engine()
+    for i in range(20):
+        eng.process(1000.0 + i * HOP, None, -70.0)
+    eng.notify_fall_candidate(1009.0, 0.9)
+    eng.process(1010.0, None, -70.0)
+    observed = sum(eng.stats.hourly_observed)
+    eng.process(900.0, None, -70.0)  # NTP steps the clock back 110 s
+    assert eng.post.run is None  # the watch is dropped, not fed 110 s of negative quiet
+    assert sum(eng.stats.hourly_observed) == pytest.approx(observed + eng.cfg.frame_seconds)
+
+
+def test_learning_measures_activity_against_the_floor_so_far():
+    # A room with a fan: -40 dBFS is its silence. With the -60 dBFS default floor every frame of
+    # calibration counted as activity, unlike in detection, which uses the learned floor.
+    eng = engine()
+    rng = np.random.default_rng(0)
+    results = [eng.process(i * HOP, None, -40.0 + rng.normal(0, 0.5)) for i in range(1200)]
+    assert eng.noise_floor == pytest.approx(-40.6, abs=0.3)
+    assert results[0].active and not any(r.active for r in results[-500:])
+    detection_floor = derive_thresholds(eng.snapshot_stats(), eng.cfg).noise_floor_dbfs
+    assert detection_floor == pytest.approx(eng.noise_floor, abs=0.3)
 
 
 def test_a_weaker_follow_up_thud_keeps_the_fall_strength():

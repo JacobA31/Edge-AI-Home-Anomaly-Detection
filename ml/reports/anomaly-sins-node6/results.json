@@ -12,8 +12,8 @@
     {
       "method": "edge_category",
       "edge_ready": true,
-      "fit_s": 32.3,
-      "score_us_per_frame": 6.0,
+      "fit_s": 32.2,
+      "score_us_per_frame": 5.2,
       "model_mb": 4.94,
       "auc": 0.8309,
       "pauc_0.1": 0.3403,
@@ -27,8 +27,8 @@
     {
       "method": "edge_global",
       "edge_ready": true,
-      "fit_s": 18.2,
-      "score_us_per_frame": 1.5,
+      "fit_s": 18.4,
+      "score_us_per_frame": 1.1,
       "model_mb": 4.41,
       "auc": 0.834,
       "pauc_0.1": 0.3442,
@@ -42,8 +42,8 @@
     {
       "method": "edge_global_pca64",
       "edge_ready": true,
-      "fit_s": 15.7,
-      "score_us_per_frame": 0.6,
+      "fit_s": 16.0,
+      "score_us_per_frame": 0.5,
       "model_mb": 0.47,
       "auc": 0.909,
       "pauc_0.1": 0.4427,
@@ -57,8 +57,8 @@
     {
       "method": "edge_period",
       "edge_ready": true,
-      "fit_s": 32.1,
-      "score_us_per_frame": 4.0,
+      "fit_s": 32.6,
+      "score_us_per_frame": 3.1,
       "model_mb": 4.95,
       "auc": 0.8589,
       "pauc_0.1": 0.3848,
@@ -72,8 +72,8 @@
     {
       "method": "kmeans8_selective",
       "edge_ready": false,
-      "fit_s": 12.5,
-      "score_us_per_frame": 6.5,
+      "fit_s": 10.9,
+      "score_us_per_frame": 10.8,
       "model_mb": 5.29,
       "auc": 0.8321,
       "pauc_0.1": 0.3164,
@@ -87,7 +87,7 @@
     {
       "method": "isolation_forest",
       "edge_ready": false,
-      "fit_s": 2.3,
+      "fit_s": 2.5,
       "score_us_per_frame": 11.0,
       "model_mb": null,
       "auc": 0.3716,
@@ -102,8 +102,8 @@
     {
       "method": "knn5_pca64",
       "edge_ready": false,
-      "fit_s": 1.8,
-      "score_us_per_frame": 11.9,
+      "fit_s": 1.9,
+      "score_us_per_frame": 9.8,
       "model_mb": 5.38,
       "auc": 0.8532,
       "pauc_0.1": 0.357,
@@ -117,8 +117,8 @@
     {
       "method": "euclidean",
       "edge_ready": false,
-      "fit_s": 0.4,
-      "score_us_per_frame": 0.9,
+      "fit_s": 0.6,
+      "score_us_per_frame": 1.2,
       "model_mb": null,
       "auc": 0.7652,
       "pauc_0.1": 0.0021,
@@ -162,10 +162,10 @@
       },
       "fall:post_impact_inactivity": {
         "planted": 10,
-        "detected": 1,
-        "detection_rate": 0.1,
-        "latency_s_median": 2957.7,
-        "latency_s_max": 2957.7
+        "detected": 0,
+        "detection_rate": 0.0,
+        "latency_s_median": null,
+        "latency_s_max": null
       },
       "impact_burst:repeated_impacts": {
         "planted": 8,
@@ -193,7 +193,7 @@
         "evening": 5
       },
       "impact_default": 5,
-      "post_impact_seconds": 2952.7274717867417,
+      "post_impact_seconds": 1722.222244173289,
       "sources": {
         "noise_floor": "learned from 5000 frames",
         "prolonged": "learned from 71 water episodes",

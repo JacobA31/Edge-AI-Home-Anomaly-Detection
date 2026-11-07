@@ -94,6 +94,10 @@ class PostImpactConfig:
     settle_max_seconds: float = 10.0
     short_seconds: float = 5.0
     max_active_fraction: float = 0.2
+    # ...and it also ends once more than this share of the last recent_seconds was active
+    # (someone got up and moved), however quiet the earlier part of the watch was.
+    recent_seconds: float = 30.0
+    max_recent_active_fraction: float = 0.5
     quiet_quantile: float = 0.95
     margin: float = 1.5
     min_seconds: float = 60.0
