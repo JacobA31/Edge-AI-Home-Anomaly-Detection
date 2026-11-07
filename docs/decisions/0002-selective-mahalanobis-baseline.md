@@ -42,3 +42,12 @@ score is its smallest distance to any of them.
   pass both on. Without scores it falls back to the single global Gaussian.
 - Whether this also holds on real audio is the first question for the SINS evaluation; if it
   doesn't, switch `contexts` back in config, with no code change.
+
+## First SINS result (2026-11-07)
+On SINS Node 6 (72 h calibration, 2.4 test days) with SAFE falls, category mode separated falls
+from household frames no better than one global Gaussian (AUC 0.831 vs 0.834). A global Gaussian
+on 64 PCA dimensions did best (0.909), and time-of-day periods came next (0.859). Category mode had
+0.42 false alerts per day on the untouched test days, but the harness only runs the behavioural
+detectors in category mode, so it hasn't been compared with global there yet. That comparison
+(ordinary impacts flagged, false inactivity alerts) decides this ADR; the status stays proposed
+until it is run. Report: `ml/reports/anomaly-sins-node6/report.md`.

@@ -85,9 +85,9 @@ class ImpactRateConfig:
 
 @dataclass
 class PostImpactConfig:
-    # Quiet is measured from when the impact itself is over (impact no longer heard), and at
-    # least grace_seconds after it. Evidence therefore comes about impact length + 1 s (episode
-    # gap tolerance) + short_seconds after the fall sound: 7-8 s, inside NF1's 10 s budget.
+    # Quiet is measured from the first quiet frame after the trigger (the fall or impact no
+    # longer heard), and at least grace_seconds after it. Evidence therefore comes about
+    # short_seconds after the fall sound ends: ~10 s from the start of a 3 s SAFE fall.
     grace_seconds: float = 1.0
     # Quiet starts at the first quiet frame after the trigger. If none comes this soon (NF1's
     # 10 s fall budget), the room never went quiet, so someone is moving and the watch ends.

@@ -38,9 +38,13 @@ jupyter lab
 `-e ../edge` in requirements.txt). Design and protocol: [docs/anomaly-detection.md](../docs/anomaly-detection.md).
 
 ```bash
+# frame streams first (see data/README.md): SAFE in a minute, SINS one room per CSV
+python -m src.export_frames safe data/safe
 # SINS replay: calibrate on early days, test on later ones, SAFE falls as anomalies
-python -m src.anomaly.evaluate --calibration data/sins/living/day{1,2,3,4}.npz \
-    --test data/sins/living/day{5,6,7}.npz --falls data/safe/falls.npz --out reports/anomaly
+S=data/processed/sins/node6
+python -m src.anomaly.evaluate --calibration $S/2017-01-31.npz $S/2017-02-0{1,2}.npz \
+    --test $S/2017-02-0{3,4,5}.npz --falls data/processed/safe/falls.npz \
+    --timezone Europe/Brussels --out reports/anomaly-sins-node6
 # smoke test of the harness on simulated frames (numbers mean nothing)
 python -m src.anomaly.evaluate --synthetic --out reports/anomaly-synthetic
 pytest -q                      # harness tests (CI runs them without TensorFlow)

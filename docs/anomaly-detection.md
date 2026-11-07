@@ -15,7 +15,7 @@ how unusual it is and which behavioural patterns just completed.
 | 1.6.1 the three temporal anomalies: prolonged running water, frequent impacts in a window, fall-like impact then reduced activity | `ProlongedSound`, `ImpactRate`, `PostImpactMonitor` |
 | 1.7.3.3 static baseline from a calibration period; recalibration as future work | static by default; gated adaptation behind `adaptation.enabled` |
 | NF1 behavioural anomalies flagged within 5 min of crossing a threshold | checked every frame (≤ 1 hop after crossing) |
-| NF1 fall budget 10 s: "short check for silence after the impact" | `post_impact_silence` evidence about 7–8 s after the fall sound |
+| NF1 fall budget 10 s: "short check for silence after the impact" | `post_impact_silence` evidence 5 s after the fall sound ends (planted SAFE falls on SINS: 9.9 s median, 11.8 s max from the start of the fall) |
 | NF4 7 days without restart; NF5 ≤ 1 GB RAM, models < 20 MB | flat memory (nothing stored per frame), crash-safe checkpoints, ~5 MB baseline |
 | NF10 privacy | input is embeddings, never audio; baseline stays on the device; events carry ≤ 10 small fields |
 
@@ -68,7 +68,7 @@ the official `yamnet_class_map.csv`). Episodes use hysteresis (`on`/`off`) and t
 |---|---|---|---|
 | Prolonged running water | durations of water episodes | 99th percentile × 1.5, clipped to 2–60 min (15 min with < 5 episodes) | `prolonged_water` (anomaly, alert) at the limit, again at 2× |
 | Repeated impacts | per 5-min window, most impacts seen, per time-of-day period, plus the impact rate | more than ever seen in that period, and at least the count a Poisson model of the learned rate expects ≤ 0.05×/day; minimum 4 | `repeated_impacts` (anomaly, alert) |
-| Impact then silence | how long quiet lasts after ordinary impacts | 5 s check once the impact is over | `post_impact_silence` (inactivity, **evidence**) |
+| Impact then silence | how long quiet lasts after ordinary impacts | 5 s check, counted from the first quiet frame after the trigger; ends if the room isn't quiet within 10 s | `post_impact_silence` (inactivity, **evidence**) |
 | Impact then inactivity | (same) | 95th percentile × 1.5 (1–60 min); after a *strong* trigger (fall candidate or unfamiliar impact) at most 2 min | `post_impact_inactivity` (inactivity, alert) |
 | Sustained unusual sound | uses the embedding threshold | ≥ 50% of a 30 s window anomalous, ≥ 10 frames | `sustained_unusual_sound` (anomaly, alert) |
 
@@ -148,11 +148,37 @@ in the inference thread.
 | 5 | Detector: mute/gaps, fall-candidate hook, runtime re-tuning, optional adaptation | done, tested |
 | 6 | CLI `calibrate` / `replay` / `info` / `bench` (also runs on the Pi) | done, tested |
 | 7 | Offline harness: 8 methods, AUC/pAUC, planted anomalies, false alerts/day, calibration length, adaptation | done, tested on synthetic data |
-| 8 | SINS replay with real YAMNet frames, SAFE falls; choose `contexts` and tune thresholds | **blocked**: needs frame streams (section 7) |
+| 8 | SINS replay with real YAMNet frames, SAFE falls; choose `contexts` and tune thresholds | **in progress**: first run on SINS Node 6 + SAFE done (below); `contexts` and thresholds not chosen yet |
 | 9 | Measure on the Pi 5: `bench`, 7-day soak, combined with YAMNet + fall model (NF5) | **blocked**: needs hardware and the other models |
 | 10 | Wire into the main loop and the Event Manager | **blocked**: needs the frame source and the Event Manager |
 
-### Results so far (laptop, synthetic frames; not accuracy claims)
+### First results on real frames (SINS Node 6 + SAFE)
+
+Full report: [ml/reports/anomaly-sins-node6/report.md](../ml/reports/anomaly-sins-node6/report.md).
+Calibrated on 31 Jan – 2 Feb 2017 (72 h), tested on 3–5 Feb (57.6 h, 2.4 days; 5 Feb ends at
+09:33), category mode, SAFE's 475 fall clips as the planted falls.
+
+| Check | Result |
+|---|---|
+| False alerts on untouched test days | 0.42/day (1 `repeated_impacts`) |
+| Planted 45-min running tap / 8-impact burst | 10/10 at ~120 s / 8/8 at ~80 s |
+| Planted fall, with fall-classifier notification | silence evidence 10/10 (9.9 s median, 11.8 s max); inactivity alert 10/10 at ~125 s |
+| Planted fall, impact sound only (no classifier) | 1/10: YAMNet rarely puts SAFE falls in the impact category, so the watch never starts |
+| Stray alerts on the days with planted events | 1.67/day, mostly `post_impact_inactivity` |
+| Embedding-only fall separation (AUC) | global 64-dim PCA 0.909, period 0.859, kNN 0.853, global 0.834, category 0.831, k-means 0.832, Euclidean 0.765, Isolation Forest 0.372 |
+| Falls caught by the embedding threshold alone | category 2.6%, global 5.7%, with ~12–13 normal frames flagged per hour |
+| Calibration length | 6 h: 6.25 alerts/day; 12–72 h: 0.42–0.83/day |
+| Static vs adapting baseline | not run: needs at least three test days |
+
+What it changed: the post-impact watch used to start while the fall clip was still playing, so the
+fall's own sound counted as activity and ended every watch at the 5 s check (1/10 planted falls
+caught, even with the classifier). Quiet is now measured from the first quiet frame.
+
+Caveats: SAFE was recorded with other microphones in other rooms, so part of the AUC may be the
+recording setup rather than the fall. The SINS clock timezone is assumed to be Europe/Brussels;
+the hourly profile looks like a normal home, but a ±1 h offset can't be ruled out.
+
+### Results on synthetic frames (laptop; not accuracy claims)
 
 Measured on an Apple-silicon laptop with Python 3.11; the Pi 5 will be slower and must be
 re-measured (task 9). Simulated frames show that the code works as designed, not that it
@@ -175,8 +201,10 @@ detects real falls.
 
 ### Evaluation protocol (task 8)
 
-Calibrate on SINS days 1–4 of one room, replayed in time order, and test on days 5–7. Run
-`python -m src.anomaly.evaluate` (see ml/README.md), which reports:
+Calibrate on the first SINS days of one room, replayed in time order, and test on the later
+ones. Node 6 (living room, next to the kitchen sink) has five full days, 31 Jan – 4 Feb 2017, plus
+parts of 30 Jan and 5 Feb, so the first run calibrates on 31 Jan – 2 Feb and tests on 3–5 Feb.
+Run `python -m src.anomaly.evaluate --timezone Europe/Brussels` (see ml/README.md), which reports:
 1. Each method's separation of SAFE falls from SINS frames (AUC, pAUC at FPR ≤ 0.1), and falls
    caught/missed and normal frames flagged per hour at the calibrated threshold.
 2. Planted falls, running water and impact bursts in the test days: detection rate and latency,
@@ -188,8 +216,8 @@ Calibrate on SINS days 1–4 of one room, replayed in time order, and test on da
 
 | From | What | Why |
 |---|---|---|
-| Fareed (preprocessing/YAMNet) | YAMNet frames for SINS (one room, a file per day) and SAFE falls/non-falls, in the frame-stream format of `frames.py`, **including the 521 class scores and `level_dbfs`** | Without scores, the category detectors and selective model are off; without levels, silence falls back to YAMNet's "Silence" class. Also: confirm 0.96 s windows and the hop (0.48 or 0.96 s) |
-| Fareed | How SINS annotations map to rooms/days, and the SINS timezone (Belgium) | Time-of-day periods and hourly statistics use local time |
+| Fareed (preprocessing/YAMNet) | **Done:** YAMNet frames for SINS and SAFE from `ml/src/export_frames.py` (0.96 s windows, 0.48 s hop, scores and levels); SINS Node 6 and SAFE exported, see ml/data/README.md | — |
+| Fareed / anyone | The SINS recording clock's timezone (assumed Europe/Brussels, not confirmed) | Time-of-day periods and hourly statistics use local time |
 | Yannis (fall classifier) | A fall-candidate confidence per frame and the threshold at which it counts | `notify_fall_candidate()` starts the post-fall silence watch; strong triggers use the 2 min limit |
 | Matthew (edge integration) | A frame source in the main loop (thread layout), mute button events, one `mic_id` per microphone | `AnomalyService.process()` per frame; `pause()` on mute |
 | Samy / whoever owns the Event Manager | Who owns the FR7 fusion (Table 1.4 assigns "event-handling" to Samy; the Gantt lists "Event Manager" without an owner). The risk formula and which findings alert | The module returns `level`, findings with `role` and `confidence`; it does not decide alerts |
@@ -198,8 +226,11 @@ Calibrate on SINS days 1–4 of one room, replayed in time order, and test on da
 
 ## 8. Limitations
 
-* All numbers so far come from **synthetic frames** (`simulate.py`). They show the code paths work,
-  not how accurate the module is on real audio. SINS is one person, one home, one week (1.6.1).
+* Real-audio numbers come from one SINS room (one person, one home, one week, 1.6.1) with SAFE
+  falls planted into it, and only 2.4 test days. They are a first check, not a measure of accuracy
+  in other homes.
+* Without the fall classifier, few falls start the post-impact watch, because YAMNet seldom calls a
+  fall an impact (1/10 on SAFE).
 * Category detection inherits YAMNet's mistakes; the on/off thresholds are untuned starting points.
 * Visitors and changed routines show up as anomalies (1.6.3); adaptation is off by default.
 * A fall with the TV on isn't followed by silence, so only the fall classifier and the embedding
