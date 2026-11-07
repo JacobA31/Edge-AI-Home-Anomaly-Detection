@@ -10,6 +10,12 @@ audio:
   sample_rate: 16000
   device: ReSpeaker   # part of the input device name; see `python -m sounddevice`
 
+# Publish yamnet.tflite as an asset of this GitHub Release.
+# model_path is both the intended download destination and the runner's input file on the Pi.
+yamnet:
+  release: yamnet-v1
+  model_path: /var/lib/e3/models/yamnet.tflite
+
 storage:
   queue_db: /var/lib/e3/queue.sqlite                  # offline event queue (no audio, ever)
 
