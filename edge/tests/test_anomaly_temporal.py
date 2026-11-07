@@ -147,6 +147,25 @@ def test_quiet_is_measured_only_once_the_impact_is_over():
     assert silence and silence[0].detected_at == pytest.approx(4.0 + 5.0 - HOP, abs=HOP)
 
 
+def test_a_fall_candidate_waits_for_the_fall_sound_to_end():
+    # Like a planted SAFE fall: the classifier fires at the start of a 3 s clip that YAMNet
+    # never calls "impact" (so no settling flag), its category lingers ~1 s, then silence.
+    mon = PostImpactMonitor(PostImpactConfig(), extended_seconds=3600)
+    mon.trigger(0.0, 0.9, "fall_candidate")
+    out = quiet_run(mon, 0.0, 200, active=lambda t: t < 4.0)
+    assert [f.kind for f in out] == ["post_impact_silence", "post_impact_inactivity"]
+    assert out[0].detected_at == pytest.approx(4.0 + 5.0 - HOP, abs=HOP)  # inside NF1's 10 s
+    assert out[1].threshold == 120  # strong trigger: short cap
+
+
+def test_a_trigger_that_never_goes_quiet_ends_the_watch():
+    samples = Reservoir(10, np.random.default_rng(0))
+    mon = PostImpactMonitor(PostImpactConfig(), samples=samples)
+    mon.trigger(0.0, 0.9, "fall_candidate")
+    assert quiet_run(mon, 0.0, 60, active=lambda t: True) == []
+    assert mon.run is None and samples.items == [0.0]  # learned: no quiet after this impact
+
+
 def test_a_weaker_follow_up_thud_keeps_the_fall_strength():
     mon = PostImpactMonitor(PostImpactConfig(), extended_seconds=3600)
     mon.trigger(0.0, 0.95, "fall_candidate")

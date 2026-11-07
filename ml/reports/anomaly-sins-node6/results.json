@@ -1,0 +1,317 @@
+{
+  "data": {
+    "calibration_hours": 72.0,
+    "test_hours": 57.56,
+    "fall_frames": 2849,
+    "embedding_dim": 1024,
+    "class_scores": true,
+    "levels": true,
+    "timezone": "Europe/Brussels"
+  },
+  "frame_level": [
+    {
+      "method": "edge_category",
+      "edge_ready": true,
+      "fit_s": 32.3,
+      "score_us_per_frame": 6.0,
+      "model_mb": 4.94,
+      "auc": 0.8309,
+      "pauc_0.1": 0.3403,
+      "tpr_at_fpr_1%": 0.1169,
+      "tpr_at_fpr_0.1%": 0.0186,
+      "false_alarm_frame_share": 0.0018,
+      "false_alarm_frames_per_hour": 13.38,
+      "anomalies_caught": 0.026,
+      "anomalies_missed": 0.974
+    },
+    {
+      "method": "edge_global",
+      "edge_ready": true,
+      "fit_s": 18.2,
+      "score_us_per_frame": 1.5,
+      "model_mb": 4.41,
+      "auc": 0.834,
+      "pauc_0.1": 0.3442,
+      "tpr_at_fpr_1%": 0.1425,
+      "tpr_at_fpr_0.1%": 0.0369,
+      "false_alarm_frame_share": 0.00182,
+      "false_alarm_frames_per_hour": 13.53,
+      "anomalies_caught": 0.0565,
+      "anomalies_missed": 0.9435
+    },
+    {
+      "method": "edge_global_pca64",
+      "edge_ready": true,
+      "fit_s": 15.7,
+      "score_us_per_frame": 0.6,
+      "model_mb": 0.47,
+      "auc": 0.909,
+      "pauc_0.1": 0.4427,
+      "tpr_at_fpr_1%": 0.1474,
+      "tpr_at_fpr_0.1%": 0.0235,
+      "false_alarm_frame_share": 0.0016,
+      "false_alarm_frames_per_hour": 11.89,
+      "anomalies_caught": 0.0337,
+      "anomalies_missed": 0.9663
+    },
+    {
+      "method": "edge_period",
+      "edge_ready": true,
+      "fit_s": 32.1,
+      "score_us_per_frame": 4.0,
+      "model_mb": 4.95,
+      "auc": 0.8589,
+      "pauc_0.1": 0.3848,
+      "tpr_at_fpr_1%": 0.1362,
+      "tpr_at_fpr_0.1%": 0.0256,
+      "false_alarm_frame_share": 0.00172,
+      "false_alarm_frames_per_hour": 12.79,
+      "anomalies_caught": 0.034,
+      "anomalies_missed": 0.966
+    },
+    {
+      "method": "kmeans8_selective",
+      "edge_ready": false,
+      "fit_s": 12.5,
+      "score_us_per_frame": 6.5,
+      "model_mb": 5.29,
+      "auc": 0.8321,
+      "pauc_0.1": 0.3164,
+      "tpr_at_fpr_1%": 0.1099,
+      "tpr_at_fpr_0.1%": 0.0211,
+      "false_alarm_frame_share": 0.00156,
+      "false_alarm_frames_per_hour": 11.6,
+      "anomalies_caught": 0.0291,
+      "anomalies_missed": 0.9709
+    },
+    {
+      "method": "isolation_forest",
+      "edge_ready": false,
+      "fit_s": 2.3,
+      "score_us_per_frame": 11.0,
+      "model_mb": null,
+      "auc": 0.3716,
+      "pauc_0.1": 0.0002,
+      "tpr_at_fpr_1%": 0.0,
+      "tpr_at_fpr_0.1%": 0.0,
+      "false_alarm_frame_share": 0.00398,
+      "false_alarm_frames_per_hour": 29.59,
+      "anomalies_caught": 0.0,
+      "anomalies_missed": 1.0
+    },
+    {
+      "method": "knn5_pca64",
+      "edge_ready": false,
+      "fit_s": 1.8,
+      "score_us_per_frame": 11.9,
+      "model_mb": 5.38,
+      "auc": 0.8532,
+      "pauc_0.1": 0.357,
+      "tpr_at_fpr_1%": 0.1207,
+      "tpr_at_fpr_0.1%": 0.0256,
+      "false_alarm_frame_share": 0.00132,
+      "false_alarm_frames_per_hour": 9.81,
+      "anomalies_caught": 0.0316,
+      "anomalies_missed": 0.9684
+    },
+    {
+      "method": "euclidean",
+      "edge_ready": false,
+      "fit_s": 0.4,
+      "score_us_per_frame": 0.9,
+      "model_mb": null,
+      "auc": 0.7652,
+      "pauc_0.1": 0.0021,
+      "tpr_at_fpr_1%": 0.0,
+      "tpr_at_fpr_0.1%": 0.0,
+      "false_alarm_frame_share": 0.004,
+      "false_alarm_frames_per_hour": 29.74,
+      "anomalies_caught": 0.0,
+      "anomalies_missed": 1.0
+    }
+  ],
+  "behavioural": {
+    "test_days": 2.4,
+    "untouched_test_days": {
+      "alerts_per_day": 0.42,
+      "confident_alerts_per_day": 0.42,
+      "evidence_per_day": 5.42,
+      "alerts_by_kind": {
+        "repeated_impacts": 1
+      }
+    },
+    "available": {
+      "fall": true,
+      "prolonged_water": true,
+      "impact_burst": true
+    },
+    "impact_trigger_only": {
+      "prolonged_water:prolonged_water": {
+        "planted": 10,
+        "detected": 10,
+        "detection_rate": 1.0,
+        "latency_s_median": 119.5,
+        "latency_s_max": 119.7
+      },
+      "fall:post_impact_silence": {
+        "planted": 10,
+        "detected": 1,
+        "detection_rate": 0.1,
+        "latency_s_median": 10.0,
+        "latency_s_max": 10.0
+      },
+      "fall:post_impact_inactivity": {
+        "planted": 10,
+        "detected": 1,
+        "detection_rate": 0.1,
+        "latency_s_median": 2957.7,
+        "latency_s_max": 2957.7
+      },
+      "impact_burst:repeated_impacts": {
+        "planted": 8,
+        "detected": 8,
+        "detection_rate": 1.0,
+        "latency_s_median": 80.2,
+        "latency_s_max": 80.4
+      },
+      "other_alerts_per_day": 1.67,
+      "other_alerts": {
+        "by_kind": {
+          "post_impact_inactivity": 3,
+          "repeated_impacts": 1
+        },
+        "confident": 1
+      }
+    },
+    "thresholds": {
+      "noise_floor_dbfs": -62.07241325378418,
+      "prolonged_seconds": 120.0,
+      "impact_counts": {
+        "night": 4,
+        "morning": 5,
+        "afternoon": 5,
+        "evening": 5
+      },
+      "impact_default": 5,
+      "post_impact_seconds": 2952.7274717867417,
+      "sources": {
+        "noise_floor": "learned from 5000 frames",
+        "prolonged": "learned from 71 water episodes",
+        "impacts": "learned from 863 windows",
+        "post_impact": "learned from 72 impacts"
+      }
+    },
+    "with_fall_classifier": {
+      "prolonged_water:prolonged_water": {
+        "planted": 10,
+        "detected": 10,
+        "detection_rate": 1.0,
+        "latency_s_median": 119.5,
+        "latency_s_max": 119.7
+      },
+      "fall:post_impact_silence": {
+        "planted": 10,
+        "detected": 10,
+        "detection_rate": 1.0,
+        "latency_s_median": 9.9,
+        "latency_s_max": 11.8
+      },
+      "fall:post_impact_inactivity": {
+        "planted": 10,
+        "detected": 10,
+        "detection_rate": 1.0,
+        "latency_s_median": 124.9,
+        "latency_s_max": 126.6
+      },
+      "impact_burst:repeated_impacts": {
+        "planted": 8,
+        "detected": 8,
+        "detection_rate": 1.0,
+        "latency_s_median": 80.2,
+        "latency_s_max": 80.4
+      },
+      "other_alerts_per_day": 1.67,
+      "other_alerts": {
+        "by_kind": {
+          "post_impact_inactivity": 3,
+          "repeated_impacts": 1
+        },
+        "confident": 1
+      }
+    }
+  },
+  "calibration_curve": [
+    {
+      "calibration_hours": 6,
+      "components": 3,
+      "test_frames_flagged": 0.02092,
+      "target_flagged": 0.001,
+      "auc": 0.8974,
+      "alerts_per_day": 6.25,
+      "confident_alerts_per_day": 6.25,
+      "evidence_per_day": 3.34,
+      "alerts_by_kind": {
+        "post_impact_inactivity": 1,
+        "repeated_impacts": 2,
+        "sustained_unusual_sound": 12
+      }
+    },
+    {
+      "calibration_hours": 12,
+      "components": 3,
+      "test_frames_flagged": 0.00024,
+      "target_flagged": 0.001,
+      "auc": 0.922,
+      "alerts_per_day": 0.42,
+      "confident_alerts_per_day": 0.42,
+      "evidence_per_day": 5.0,
+      "alerts_by_kind": {
+        "repeated_impacts": 1
+      }
+    },
+    {
+      "calibration_hours": 24,
+      "components": 5,
+      "test_frames_flagged": 0.00154,
+      "target_flagged": 0.001,
+      "auc": 0.8556,
+      "alerts_per_day": 0.83,
+      "confident_alerts_per_day": 0.83,
+      "evidence_per_day": 4.59,
+      "alerts_by_kind": {
+        "repeated_impacts": 1,
+        "sustained_unusual_sound": 1
+      }
+    },
+    {
+      "calibration_hours": 48,
+      "components": 6,
+      "test_frames_flagged": 0.00132,
+      "target_flagged": 0.001,
+      "auc": 0.8699,
+      "alerts_per_day": 0.83,
+      "confident_alerts_per_day": 0.83,
+      "evidence_per_day": 4.17,
+      "alerts_by_kind": {
+        "repeated_impacts": 1,
+        "sustained_unusual_sound": 1
+      }
+    },
+    {
+      "calibration_hours": 72,
+      "components": 6,
+      "test_frames_flagged": 0.0018,
+      "target_flagged": 0.001,
+      "auc": 0.8309,
+      "alerts_per_day": 0.42,
+      "confident_alerts_per_day": 0.42,
+      "evidence_per_day": 5.42,
+      "alerts_by_kind": {
+        "repeated_impacts": 1
+      }
+    }
+  ],
+  "adaptation": {
+    "skipped": "needs at least three test days"
+  }
+}

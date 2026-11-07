@@ -294,7 +294,15 @@ class PostImpactMonitor:
     def update(self, t: float, dt: float, active: bool, settling: bool = False) -> list[Finding]:
         """`settling`: the impact is still being heard, so quiet can't be measured yet."""
         run = self.run
-        if run is None or (settling and run.observed == 0) or t < run.t0 + self.cfg.grace_seconds:
+        if run is None or t < run.t0 + self.cfg.grace_seconds:
+            return []
+        if run.observed == 0 and (settling or active):
+            # The trigger's own sound is still going: the rest of a fall clip, its tail, a second
+            # thud. A fall-classifier trigger has no "impact" category to wait for, so quiet is
+            # measured from the first quiet frame. Counting the fall itself as activity ended
+            # every watch at the 5 s check (9 of 10 planted SAFE falls missed on SINS).
+            if t - run.t0 > self.cfg.settle_max_seconds:
+                self._finish()  # never went quiet: someone is moving
             return []
         run.observed += dt
         run.active += dt if active else 0.0

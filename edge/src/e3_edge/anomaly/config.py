@@ -89,6 +89,9 @@ class PostImpactConfig:
     # least grace_seconds after it. Evidence therefore comes about impact length + 1 s (episode
     # gap tolerance) + short_seconds after the fall sound: 7-8 s, inside NF1's 10 s budget.
     grace_seconds: float = 1.0
+    # Quiet starts at the first quiet frame after the trigger. If none comes this soon (NF1's
+    # 10 s fall budget), the room never went quiet, so someone is moving and the watch ends.
+    settle_max_seconds: float = 10.0
     short_seconds: float = 5.0
     max_active_fraction: float = 0.2
     quiet_quantile: float = 0.95
