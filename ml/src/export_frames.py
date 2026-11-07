@@ -29,6 +29,9 @@ OUTPUT_ROOT = Path(__file__).resolve().parents[1] / "data" / "processed"
 SAFE_REPLAY_START = 946684800.0  # 2000-01-01 UTC; artificial replay time, not recording time.
 SAFE_GAP_SECONDS = 6.0  # Evaluator uses gaps > 5 s to separate SAFE clips.
 SAFE_LABELS = {"01": "falls", "02": "non_falls"}
+# Each SINS file repeats the last ~0.92 s of the one before it (all 3,647 overlaps in Node 6
+# are 0.92-0.93 s). Up to this much is trimmed; more means the start times are wrong.
+MAX_OVERLAP_SECONDS = 2.0
 
 
 def load_audio(path: Path) -> np.ndarray:
@@ -142,12 +145,29 @@ def _read_recordings(manifest: Path) -> list[tuple[float, Path]]:
     return sorted(recordings)
 
 
+def trim_overlap(start_time: float, waveform: np.ndarray, previous_end: float,
+                 name: object) -> tuple[float, np.ndarray]:
+    """Cut the start of a recording that repeats the end of the previous one.
+
+    Trimming the audio (not the windows) keeps every sound counted once, so durations and
+    impact counts are not inflated at file boundaries. Returns the new start and waveform.
+    """
+    overlap = previous_end - start_time
+    if overlap <= 1 / SAMPLE_RATE:
+        return start_time, waveform
+    cut = int(np.ceil(overlap * SAMPLE_RATE - 1e-6))
+    if overlap > MAX_OVERLAP_SECONDS or cut >= len(waveform):
+        raise ValueError(
+            f"Overlapping SINS recordings at {name}: {overlap:.2f} s repeats the previous file "
+            f"(at most {MAX_OVERLAP_SECONDS:g} s is trimmed); check the recording start times"
+        )
+    return start_time + cut / SAMPLE_RATE, waveform[cut:]
+
+
 def _daily_parts(recordings: list[tuple[float, Path]], timezone: ZoneInfo):
     previous_end = -np.inf
     for start_time, path in recordings:
-        waveform = load_audio(path)
-        if start_time < previous_end - 1 / SAMPLE_RATE:
-            raise ValueError(f"Overlapping SINS recordings at {path}; check the recording start times")
+        start_time, waveform = trim_overlap(start_time, load_audio(path), previous_end, path)
         previous_end = start_time + len(waveform) / SAMPLE_RATE
         stream = make_stream(waveform, start_time)
         days = [datetime.fromtimestamp(float(t), timezone).date() for t in stream.timestamps]
