@@ -1,9 +1,9 @@
-"""YAMNet inference helpers for prepared audio waveforms."""
+"""YAMNet inference helpers for prepared audio waveforms. For """
 
 from functools import lru_cache
+from importlib import import_module
 
 import numpy as np
-import tensorflow_hub as hub
 
 YAMNET_MODEL_URL = "https://tfhub.dev/google/yamnet/1"
 EMBEDDING_SIZE = 1_024
@@ -12,6 +12,7 @@ EMBEDDING_SIZE = 1_024
 @lru_cache(maxsize=1)
 def _load_yamnet_model():
     """Load YAMNet once and reuse it for later recordings in this process."""
+    hub = import_module("tensorflow_hub")
     return hub.load(YAMNET_MODEL_URL)
 
 
@@ -19,7 +20,7 @@ def extract_embeddings(waveform: np.ndarray) -> np.ndarray:
     """Return YAMNet embeddings for one prepared audio waveform.
 
     ``waveform`` should be the mono, 16 kHz float32 array returned by
-    ``features.load_audio``. YAMNet handles its own spectrogram generation and
+    ``features.prepare_audio``. YAMNet handles its own spectrogram generation and
     overlapping audio windows. The result has one 1,024-value row per window.
     """
     audio = np.asarray(waveform, dtype=np.float32)
