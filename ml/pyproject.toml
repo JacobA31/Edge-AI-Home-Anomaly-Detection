@@ -1,0 +1,11 @@
+# Tool settings only (dependencies are in requirements.txt). Ruff settings match edge/ and backend/.
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

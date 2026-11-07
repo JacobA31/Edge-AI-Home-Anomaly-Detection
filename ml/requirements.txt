@@ -1,6 +1,10 @@
 # Training happens on laptops / Colab, not on the Pi
+-e ../edge  # the anomaly evaluation runs the edge code itself (install from inside ml/)
 tensorflow>=2.16
 tensorflow-hub
+# Hub 0.16.1 still uses pkg_resources, removed in setuptools 82.
+setuptools<82
+certifi
 ai-edge-litert
 librosa
 numpy
@@ -9,3 +13,4 @@ scikit-learn
 matplotlib
 mlflow
 jupyterlab
+pytest>=8
