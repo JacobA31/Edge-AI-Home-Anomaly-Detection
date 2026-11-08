@@ -1,4 +1,4 @@
-"""Load recording-level training/validation examples; never open test archives."""
+"""Recording-level loaders: training excludes test archives; evaluation opts in explicitly."""
 
 import csv
 import hashlib
@@ -157,6 +157,33 @@ def load_training_data(manifest_path: Path) -> TrainingData:
             },
         },
     )
+
+
+def load_evaluation_split(
+    manifest_path: Path, split: str, *, expected_manifest_sha256: str, expected_yamnet_sha256: str,
+) -> tuple[Recording, ...]:
+    """Load only validation OR test, checking provenance against the training run.
+
+    Call for validation first, choose and persist the threshold, then call for
+    test. This separate API never changes which archives training can open.
+    """
+    if split not in {"validation", "test"}:
+        raise ValueError("Evaluation split must be validation or test")
+    manifest = Path(manifest_path).expanduser().resolve()
+    if hashlib.sha256(manifest.read_bytes()).hexdigest() != expected_manifest_sha256:
+        raise ValueError("Manifest differs from the training run; use the original exported dataset")
+    rows = _read_manifest(manifest)
+    recordings = []
+    for row in rows:
+        if row["split"] != split:
+            continue
+        recording, fingerprint = _load_recording(manifest.parent, row)
+        if fingerprint != expected_yamnet_sha256:
+            raise ValueError(f"YAMNet fingerprint differs from the training run: {recording.source_path}")
+        recordings.append(recording)
+    if {recording.label for recording in recordings} != set(LABEL_IDS):
+        raise ValueError(f"{split} must contain both falls and non-falls")
+    return tuple(recordings)
 
 
 def pack_recordings(recordings: tuple[Recording, ...]) -> tuple[dict[str, np.ndarray], np.ndarray]:

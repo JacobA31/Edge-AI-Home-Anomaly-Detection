@@ -1,6 +1,7 @@
 """Validate recording-level examples and split isolation without TensorFlow."""
 
 import csv
+import hashlib
 
 import numpy as np
 import pytest
@@ -123,3 +124,67 @@ def test_requires_both_labels_in_training_and_validation(exported):
 
     with pytest.raises(ValueError, match="validation must contain both"):
         dataset.load_training_data(exported)
+
+
+def evaluation_settings(manifest):
+    return {
+        "expected_manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
+        "expected_yamnet_sha256": "a" * 64,
+    }
+
+
+def test_validation_evaluation_does_not_need_training_or_test_archives(exported):
+    (exported.parent / "01-001-01-001-01.npz").unlink()
+    (exported.parent / "02-002-00-001-02.npz").unlink()
+
+    recordings = dataset.load_evaluation_split(exported, "validation", **evaluation_settings(exported))
+
+    assert len(recordings) == 2
+    assert all(recording.split == "validation" for recording in recordings)
+
+
+def test_test_evaluation_loads_only_explicit_test_archives(exported, monkeypatch):
+    with np.load(exported.parent / "01-001-01-001-01.npz", allow_pickle=False) as source:
+        arrays = {key: source[key] for key in source.files}
+    for name, label in (("09-005-01-003-01", "fall"), ("10-006-00-003-02", "non_fall")):
+        np.savez_compressed(
+            exported.parent / f"{name}.npz",
+            **{**arrays, "source_path": f"{name}.wav", "label": label, "split": "test"},
+        )
+    loaded_splits = []
+    original = dataset._load_recording
+
+    def tracked_load(root, row):
+        loaded_splits.append(row["split"])
+        return original(root, row)
+
+    monkeypatch.setattr(dataset, "_load_recording", tracked_load)
+
+    recordings = dataset.load_evaluation_split(exported, "test", **evaluation_settings(exported))
+
+    assert loaded_splits == ["test", "test"]
+    assert len(recordings) == 2 and all(recording.split == "test" for recording in recordings)
+
+
+def test_evaluation_rejects_changed_manifest_before_opening_any_archives(exported, monkeypatch):
+    settings = evaluation_settings(exported)
+    exported.write_text(exported.read_text() + "\n")
+
+    def unexpected_load(*args):
+        pytest.fail("Changed manifest must fail before loading embeddings")
+
+    monkeypatch.setattr(dataset, "_load_recording", unexpected_load)
+    with pytest.raises(ValueError, match="Manifest differs"):
+        dataset.load_evaluation_split(exported, "test", **settings)
+
+
+def test_evaluation_checks_yamnet_fingerprint_against_training_run(exported):
+    settings = {**evaluation_settings(exported), "expected_yamnet_sha256": "b" * 64}
+
+    with pytest.raises(ValueError, match="YAMNet fingerprint differs"):
+        dataset.load_evaluation_split(exported, "validation", **settings)
+
+
+def test_evaluation_rejects_training_split(exported):
+    with pytest.raises(ValueError, match="validation or test"):
+        dataset.load_evaluation_split(exported, "train", **evaluation_settings(exported))
