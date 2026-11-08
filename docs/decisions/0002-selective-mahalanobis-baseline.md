@@ -1,6 +1,6 @@
 # 0002 – Category-conditioned "selective" Mahalanobis baseline
 
-- **Status:** proposed (to be confirmed on SINS)
+- **Status:** accepted (confirmed on SINS Node 6, 2026-11-07)
 - **Date:** 2026-10-30
 
 ## Context
@@ -51,3 +51,19 @@ on 64 PCA dimensions did best (0.909), and time-of-day periods came next (0.859)
 detectors in category mode, so it hasn't been compared with global there yet. That comparison
 (ordinary impacts flagged, false inactivity alerts) decides this ADR; the status stays proposed
 until it is run. Report: `ml/reports/anomaly-sins-node6/report.md`.
+
+## Decision on SINS (2026-11-07)
+The harness now runs the behavioural detectors for every context and adds two checks: SAFE's
+non-fall clips as a control, and how often each context flags the home's own sounds.
+
+- With the same recordings, SAFE non-falls separate from SINS almost as well as falls (category
+  0.784 vs 0.831; global PCA-64 0.882 vs 0.909), and no context separates falls from non-falls
+  (AUC 0.55–0.58). The PCA and period modes' higher fall AUCs are the recording setup, not falls.
+- Share of the home's own frames flagged (impact / water / household): category 1.5% / 0% / 0.13%,
+  global 1.5% / 2.6% / 1.3%, global PCA-64 6.0% / 5.5% / 3.3%, period 3.0% / 4.8% / 4.0%.
+- Behavioural alerts on the untouched test days and planted-event detection were identical for all
+  four contexts.
+
+So category mode is kept: it flags the home's familiar sounds least, which is what this ADR is for,
+and it loses nothing measurable on falls. Report: `ml/reports/anomaly-sins-node6/report.md`;
+details in docs/anomaly-detection.md, section 6.

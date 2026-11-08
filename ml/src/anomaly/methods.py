@@ -76,6 +76,14 @@ class EdgeBaseline(Scorer):
         return self.baseline.embedding.size_bytes() + self.baseline.score_sample.nbytes
 
 
+def parse_context(name: str) -> tuple[str, int | None]:
+    """Report name -> (contexts, n_components): "category", "global_pca64" -> ("global", 64)."""
+    contexts, _, pca = name.partition("_pca")
+    if contexts not in ("global", "category", "period") or (pca and not pca.isdigit()):
+        raise ValueError(f"unknown embedding context {name!r} (e.g. category, global, global_pca64, period)")
+    return contexts, int(pca) if pca else None
+
+
 def calibrate_edge(stream: FrameStream, cfg: AnomalyConfig, contexts: str | None = None,
                    n_components: int | None = None, frame_quantile: float | None = None):
     """Runs the device's calibration over all of a stream, split as the device would."""

@@ -1,0 +1,205 @@
+{
+  "data": {
+    "calibration_hours": 67.34,
+    "test_hours": 81.56,
+    "fall_frames": 2849,
+    "non_fall_frames": 2850,
+    "embedding_dim": 1024,
+    "class_scores": true,
+    "levels": true,
+    "timezone": "Europe/Brussels",
+    "contexts": [
+      "category"
+    ],
+    "plant_seeds": [
+      0,
+      1,
+      2
+    ]
+  },
+  "behavioural": {
+    "category": {
+      "test_days": 3.4,
+      "untouched_test_days": {
+        "alerts_per_day": 0.0,
+        "confident_alerts_per_day": 0.0,
+        "evidence_per_day": 5.0,
+        "alerts_by_kind": {}
+      },
+      "available": {
+        "fall": true,
+        "prolonged_water": true,
+        "impact_burst": true
+      },
+      "thresholds": {
+        "noise_floor_dbfs": -62.18308334350586,
+        "prolonged_seconds": 120.0,
+        "impact_counts": {
+          "night": 6,
+          "morning": 6,
+          "afternoon": 8,
+          "evening": 6
+        },
+        "impact_default": 8,
+        "post_impact_seconds": 1553.0424751996952,
+        "sources": {
+          "noise_floor": "learned from 5000 frames",
+          "prolonged": "learned from 75 water episodes",
+          "impacts": "learned from 807 windows",
+          "post_impact": "learned from 85 impacts"
+        }
+      },
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "impact_trigger_only": {
+        "prolonged_water:prolonged_water": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 119.6,
+          "latency_s_max": 119.9
+        },
+        "impact_burst:repeated_impacts": {
+          "planted": 30,
+          "detected": 29,
+          "detection_rate": 0.967,
+          "latency_s_median": 100.3,
+          "latency_s_max": 140.2
+        },
+        "fall:post_impact_silence": {
+          "planted": 30,
+          "detected": 6,
+          "detection_rate": 0.2,
+          "latency_s_median": 7.9,
+          "latency_s_max": 8.0
+        },
+        "fall:post_impact_inactivity": {
+          "planted": 30,
+          "detected": 2,
+          "detection_rate": 0.067,
+          "latency_s_median": 1557.9,
+          "latency_s_max": 1558.0
+        },
+        "stray_alerts_per_day": 0.0,
+        "stray_alerts": {
+          "by_kind": {},
+          "confident": 0
+        },
+        "side_alerts": {
+          "post_impact_inactivity": 6
+        }
+      },
+      "ideal_classifier": {
+        "prolonged_water:prolonged_water": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 119.6,
+          "latency_s_max": 119.9
+        },
+        "impact_burst:repeated_impacts": {
+          "planted": 30,
+          "detected": 29,
+          "detection_rate": 0.967,
+          "latency_s_median": 100.3,
+          "latency_s_max": 140.2
+        },
+        "fall:post_impact_silence": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 7.8,
+          "latency_s_max": 8.1
+        },
+        "fall:post_impact_inactivity": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 124.8,
+          "latency_s_max": 125.0
+        },
+        "stray_alerts_per_day": 0.0,
+        "stray_alerts": {
+          "by_kind": {},
+          "confident": 0
+        },
+        "side_alerts": {
+          "post_impact_inactivity": 6
+        }
+      },
+      "weaker_classifier": {
+        "prolonged_water:prolonged_water": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 119.6,
+          "latency_s_max": 119.9
+        },
+        "impact_burst:repeated_impacts": {
+          "planted": 30,
+          "detected": 29,
+          "detection_rate": 0.967,
+          "latency_s_median": 100.3,
+          "latency_s_max": 140.2
+        },
+        "fall:post_impact_silence": {
+          "planted": 30,
+          "detected": 25,
+          "detection_rate": 0.833,
+          "latency_s_median": 7.9,
+          "latency_s_max": 8.1
+        },
+        "fall:post_impact_inactivity": {
+          "planted": 30,
+          "detected": 24,
+          "detection_rate": 0.8,
+          "latency_s_median": 124.8,
+          "latency_s_max": 125.0
+        },
+        "stray_alerts_per_day": 0.0,
+        "stray_alerts": {
+          "by_kind": {},
+          "confident": 0
+        },
+        "side_alerts": {
+          "post_impact_inactivity": 6
+        },
+        "false_triggers": 48,
+        "false_trigger_alerts": 0
+      }
+    }
+  },
+  "adaptation": {
+    "static": {
+      "alerts_per_day": 0.0,
+      "confident_alerts_per_day": 0.0,
+      "evidence_per_day": 5.0,
+      "alerts_by_kind": {},
+      "baseline_updates": 0,
+      "frames_flagged_by_day": [
+        0.00097,
+        0.00123,
+        0.00143,
+        0.00191
+      ],
+      "target_flagged": 0.001
+    },
+    "adaptive": {
+      "alerts_per_day": 0.0,
+      "confident_alerts_per_day": 0.0,
+      "evidence_per_day": 5.0,
+      "alerts_by_kind": {},
+      "baseline_updates": 1,
+      "frames_flagged_by_day": [
+        0.00097,
+        0.00123,
+        0.00102,
+        0.00172
+      ],
+      "target_flagged": 0.001
+    }
+  }
+}

@@ -32,6 +32,7 @@ from e3_edge.events import make_event
 
 SCHEMA = Path(__file__).resolve().parents[2] / "shared" / "event.schema.json"
 HOP = 0.5
+SHORT = PostImpactConfig().short_seconds  # quiet needed for the silence evidence
 
 
 def test_episode_tracker_hysteresis_and_gap_tolerance():
@@ -145,7 +146,7 @@ def test_quiet_is_measured_only_once_the_impact_is_over():
         settling = t < 4.0  # a long impact tail: loud and still "impact" for 4 s
         out += mon.update(t, HOP, active=settling, settling=settling)
     silence = [f for f in out if f.kind == "post_impact_silence"]
-    assert silence and silence[0].detected_at == pytest.approx(4.0 + 5.0 - HOP, abs=HOP)
+    assert silence and silence[0].detected_at == pytest.approx(4.0 + SHORT - HOP, abs=HOP)
 
 
 def test_a_fall_candidate_waits_for_the_fall_sound_to_end():
@@ -155,7 +156,7 @@ def test_a_fall_candidate_waits_for_the_fall_sound_to_end():
     mon.trigger(0.0, 0.9, "fall_candidate")
     out = quiet_run(mon, 0.0, 200, active=lambda t: t < 4.0)
     assert [f.kind for f in out] == ["post_impact_silence", "post_impact_inactivity"]
-    assert out[0].detected_at == pytest.approx(4.0 + 5.0 - HOP, abs=HOP)  # inside NF1's 10 s
+    assert out[0].detected_at == pytest.approx(4.0 + SHORT - HOP, abs=HOP)  # inside NF1's 10 s
     assert out[1].threshold == 120  # strong trigger: short cap
 
 

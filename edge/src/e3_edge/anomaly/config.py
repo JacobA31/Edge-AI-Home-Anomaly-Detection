@@ -2,7 +2,8 @@
 
 Every value has a default, so an empty `anomaly:` section in edge/config.yaml works. Durations
 are seconds of *observed* audio: time spent muted does not count towards calibration.
-The thresholds marked "tune on SINS" are starting points until the SINS replay is run.
+Defaults were checked on the SINS Node 6 replay with SAFE falls (docs/anomaly-detection.md,
+section 6); the ones it changed say so.
 """
 
 from __future__ import annotations
@@ -77,7 +78,9 @@ class ImpactRateConfig:
     # a Poisson model of the learned impact rate expects at most this many false alerts per day
     # (per period). Real impacts are burstier than Poisson, hence max(empirical, Poisson).
     target_alerts_per_day: float = 0.05
-    min_count: int = 4
+    # Tuned on SINS Node 6: a learned limit of 4-5 let ordinary busy mornings alert (0.42-0.59
+    # false alerts/day on two splits); 6 removed them and still caught the planted 8-impact bursts.
+    min_count: int = 6
     min_windows: int = 12  # per period; with fewer, the pooled threshold is used
     default_count: int = 6
     cooldown_seconds: float = 300.0
@@ -87,12 +90,14 @@ class ImpactRateConfig:
 class PostImpactConfig:
     # Quiet is measured from the first quiet frame after the trigger (the fall or impact no
     # longer heard), and at least grace_seconds after it. Evidence therefore comes about
-    # short_seconds after the fall sound ends: ~10 s from the start of a 3 s SAFE fall.
+    # short_seconds after the fall sound ends: ~8 s from the start of a 3 s SAFE fall.
     grace_seconds: float = 1.0
     # Quiet starts at the first quiet frame after the trigger. If none comes this soon (NF1's
     # 10 s fall budget), the room never went quiet, so someone is moving and the watch ends.
     settle_max_seconds: float = 10.0
-    short_seconds: float = 5.0
+    # Tuned on SINS Node 6 + SAFE: 5 s put the evidence up to 11.8 s after the fall started and
+    # 4 s up to 10.3 s, both over NF1's 10 s; 3 s gives 9.4 s at most, with no more alerts.
+    short_seconds: float = 3.0
     max_active_fraction: float = 0.2
     # ...and it also ends once more than this share of the last recent_seconds was active
     # (someone got up and moved), however quiet the earlier part of the watch was.

@@ -42,9 +42,20 @@ jupyter lab
 python -m src.export_frames safe data/safe
 # SINS replay: calibrate on early days, test on later ones, SAFE falls as anomalies
 S=data/processed/sins/node6
+SAFE=data/processed/safe
 python -m src.anomaly.evaluate --calibration $S/2017-01-31.npz $S/2017-02-0{1,2}.npz \
-    --test $S/2017-02-0{3,4,5}.npz --falls data/processed/safe/falls.npz \
-    --timezone Europe/Brussels --out reports/anomaly-sins-node6
+    --test $S/2017-02-0{3,4,5}.npz --falls $SAFE/falls.npz --non-falls $SAFE/non_falls.npz \
+    --timezone Europe/Brussels --contexts category global global_pca64 period --plant-seeds 0 1 2 \
+    --parts frame_level behavioural calibration_curve adaptation classifier \
+    --out reports/anomaly-sins-node6                       # ~1 h
+# second split, long enough (3.4 test days) for static vs adapting
+python -m src.anomaly.evaluate --calibration $S/2017-01-{30,31}.npz $S/2017-02-01.npz \
+    --test $S/2017-02-0{2,3,4,5}.npz --falls $SAFE/falls.npz --timezone Europe/Brussels \
+    --plant-seeds 0 1 2 --parts behavioural adaptation --out reports/anomaly-sins-node6-split2
+# threshold sweep: every variant in TUNING_VARIANTS recalibrated and replayed (~1 h)
+python -m src.anomaly.evaluate --calibration $S/2017-01-31.npz $S/2017-02-0{1,2}.npz \
+    --test $S/2017-02-0{3,4,5}.npz --falls $SAFE/falls.npz --timezone Europe/Brussels \
+    --parts tuning --plant-seeds 0 1 --out reports/anomaly-sins-node6-tuning
 # smoke test of the harness on simulated frames (numbers mean nothing)
 python -m src.anomaly.evaluate --synthetic --out reports/anomaly-synthetic
 pytest -q                      # harness tests (CI runs them without TensorFlow)

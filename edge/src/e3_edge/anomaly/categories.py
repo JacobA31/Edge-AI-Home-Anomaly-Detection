@@ -6,7 +6,8 @@ category's score is the highest score among its member classes.
 
 yamnet_class_map.csv is the official class map (tensorflow/models, research/audioset/yamnet,
 Apache-2.0). Classes are referred to by display name so the mapping can be read and reviewed.
-On/off thresholds are starting points: tune on SINS.
+On/off thresholds were checked on SINS Node 6: impact on=0.1 raised false alerts from 0.42 to
+6.25 per day and on=0.3 missed 44% of planted impact bursts, so the 0.2/0.1 defaults stay.
 """
 
 from __future__ import annotations
