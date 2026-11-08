@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "paths_relative_to": "ml/",
+  "training_run": "models/fall_classifier/run-20261108T201103Z-322b0c19",
+  "model_path": "models/fall_classifier/run-20261108T201103Z-322b0c19/window_classifier.keras",
+  "model_sha256": "24cc7cb24798a7255e6cfb3fe79fdda805521a6c01f8ede97e2230525ee68451",
+  "best_epoch": 25,
+  "embedding_scaling": "none",
+  "threshold": 0.66,
+  "decision_rule": "score >= threshold",
+  "recording_score": "maximum valid window score",
+  "label_ids": {
+    "non_fall": 0,
+    "fall": 1
+  },
+  "input_shape": [
+    null,
+    1024
+  ],
+  "output_shape": [
+    null,
+    1
+  ],
+  "yamnet_sha256": "3462e073dd7dd359afdbbefe273fed1cd29df2ca705f72a2af80d624095dc4c9",
+  "manifest_path": "data/processed/safe_classifier/manifest.csv",
+  "manifest_sha256": "e04f4aab02395e6cf13070abdf19a3b5fe4a096713657fc868249d3df3f9b30e",
+  "evaluation_report": "reports/fall_classifier/selected-model/report.md",
+  "selection_method": "manual_after_reviewing_validation_and_test_results",
+  "test_used_for_threshold_selection": true,
+  "created_utc": "2026-11-08T23:16:33Z"
+}
