@@ -29,10 +29,17 @@ def exported(tmp_path):
         if split == "test":
             continue
         np.savez_compressed(
-            root / features, embeddings=np.full((count, 1024), count, dtype=np.float32),
-            window_start_seconds=np.arange(count) * 0.48, valid_samples=np.full(count, 15600),
-            source_path=name, label=label, split=split, sample_rate=16000,
-            window_samples=15600, hop_samples=7680, model_sha256="a" * 64,
+            root / features,
+            embeddings=np.full((count, 1024), count, dtype=np.float32),
+            window_start_seconds=np.arange(count) * 0.48,
+            valid_samples=np.full(count, 15600),
+            source_path=name,
+            label=label,
+            split=split,
+            sample_rate=16000,
+            window_samples=15600,
+            hop_samples=7680,
+            model_sha256="a" * 64,
         )
     path = root / "manifest.csv"
     with path.open("w", newline="") as output:
@@ -76,17 +83,23 @@ def test_packing_keeps_one_label_per_recording_and_masks_only_batch_padding(expo
     np.testing.assert_array_equal(inputs["embeddings"][1, 5], np.zeros(1024))
 
 
-@pytest.mark.parametrize("changes", [
-    {"label": "non_fall"}, {"split": "test"}, {"source_path": "other.wav"},
-    {"embeddings": np.zeros((5, 1024), dtype=np.float32)},
-    {"embeddings": np.zeros((6, 1024), dtype=np.float64)},
-    {"embeddings": np.full((6, 1024), np.nan, dtype=np.float32)},
-    {"sample_rate": 48000}, {"hop_samples": 15600},
-    {"window_start_seconds": np.arange(6)},
-    {"valid_samples": np.array([15600, 100, 15600, 15600, 15600, 15600])},
-    {"valid_samples": np.array([15600, 15600, 15600, 15600, 15600, 1])},
-    {"model_sha256": "b" * 64},
-])
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"label": "non_fall"},
+        {"split": "test"},
+        {"source_path": "other.wav"},
+        {"embeddings": np.zeros((5, 1024), dtype=np.float32)},
+        {"embeddings": np.zeros((6, 1024), dtype=np.float64)},
+        {"embeddings": np.full((6, 1024), np.nan, dtype=np.float32)},
+        {"sample_rate": 48000},
+        {"hop_samples": 15600},
+        {"window_start_seconds": np.arange(6)},
+        {"valid_samples": np.array([15600, 100, 15600, 15600, 15600, 15600])},
+        {"valid_samples": np.array([15600, 15600, 15600, 15600, 15600, 1])},
+        {"model_sha256": "b" * 64},
+    ],
+)
 def test_rejects_mismatched_corrupt_or_mixed_feature_exports(exported, changes):
     rewrite_archive(exported.parent / "01-001-01-001-01.npz", **changes)
 

@@ -54,9 +54,16 @@ def _read_splits(csv_path: Path) -> list[tuple[Path, str, str]]:
     fold_splits = {}
     with csv_path.open(newline="", encoding="utf-8-sig") as source:
         reader = csv.DictReader(source, strict=True)
-        if not reader.fieldnames or len(reader.fieldnames) != 3 or set(reader.fieldnames) != {
-            "path", "label", "split",
-        }:
+        if (
+            not reader.fieldnames
+            or len(reader.fieldnames) != 3
+            or set(reader.fieldnames)
+            != {
+                "path",
+                "label",
+                "split",
+            }
+        ):
             raise ValueError("Expected path,label,split columns from src.fall_classifier.split_safe")
         for line, row in enumerate(reader, start=2):
             if None in row or any(not (row.get(key) or "").strip() for key in ("path", "label", "split")):
@@ -98,8 +105,14 @@ def _load_recording(path: Path) -> np.ndarray:
 
 
 def _save_recording(
-    samples: np.ndarray, audio: AudioPipeline, destination: Path,
-    *, source_path: Path, label: str, split: str, model_sha256: str,
+    samples: np.ndarray,
+    audio: AudioPipeline,
+    destination: Path,
+    *,
+    source_path: Path,
+    label: str,
+    split: str,
+    model_sha256: str,
 ) -> int:
     """Keep every window from a recording in one archive, with one recording label."""
     count = 1 + (max(0, len(samples) - WINDOW_SAMPLES) + HOP_SAMPLES - 1) // HOP_SAMPLES
@@ -107,9 +120,11 @@ def _save_recording(
     valid_samples = np.minimum(WINDOW_SAMPLES, len(samples) - starts)
     embeddings = np.empty((count, EMBEDDING_SIZE), dtype=np.float32)
     for index, start in enumerate(starts):
-        raw = samples[start:start + WINDOW_SAMPLES]
+        raw = samples[start : start + WINDOW_SAMPLES]
         frame = audio.process_window(
-            raw, start_time=float(start / SAMPLE_RATE), sample_rate=SAMPLE_RATE,
+            raw,
+            start_time=float(start / SAMPLE_RATE),
+            sample_rate=SAMPLE_RATE,
             pad_end=len(raw) < WINDOW_SAMPLES,
         )
         embedding = np.asarray(frame.embedding)
@@ -118,16 +133,25 @@ def _save_recording(
         embeddings[index] = embedding
     destination.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(
-        destination, embeddings=embeddings, window_start_seconds=starts / SAMPLE_RATE,
-        valid_samples=valid_samples, source_path=source_path.as_posix(), label=label, split=split,
-        sample_rate=SAMPLE_RATE, window_samples=WINDOW_SAMPLES, hop_samples=HOP_SAMPLES,
+        destination,
+        embeddings=embeddings,
+        window_start_seconds=starts / SAMPLE_RATE,
+        valid_samples=valid_samples,
+        source_path=source_path.as_posix(),
+        label=label,
+        split=split,
+        sample_rate=SAMPLE_RATE,
+        window_samples=WINDOW_SAMPLES,
+        hop_samples=HOP_SAMPLES,
         model_sha256=model_sha256,
     )
     return count
 
 
 def export_safe_embeddings(
-    splits_csv: Path, model_path: Path = DEFAULT_MODEL, output_dir: Path = DEFAULT_OUTPUT,
+    splits_csv: Path,
+    model_path: Path = DEFAULT_MODEL,
+    output_dir: Path = DEFAULT_OUTPUT,
 ) -> Path:
     """Export every listed recording, reusing one loaded edge YAMNet model."""
     splits_csv = Path(splits_csv).expanduser().resolve()
@@ -153,8 +177,13 @@ def export_safe_embeddings(
             features_path = Path("recordings") / relative.with_suffix(".npz")
             try:
                 windows = _save_recording(
-                    _load_recording(splits_csv.parent / relative), audio, staging / features_path,
-                    source_path=relative, label=label, split=split, model_sha256=model_sha256,
+                    _load_recording(splits_csv.parent / relative),
+                    audio,
+                    staging / features_path,
+                    source_path=relative,
+                    label=label,
+                    split=split,
+                    model_sha256=model_sha256,
                 )
             except (OSError, ValueError, RuntimeError) as error:
                 raise ValueError(f"Failed to process {relative}: {error}") from error
@@ -181,12 +210,18 @@ def export_safe_embeddings(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument(
-        "splits_csv", type=Path, help="SAFE splits.csv produced by src.fall_classifier.split_safe",
+        "splits_csv",
+        type=Path,
+        help="SAFE splits.csv produced by src.fall_classifier.split_safe",
     )
     parser.add_argument("--model", type=Path, default=DEFAULT_MODEL, help="Exported YAMNet .tflite file")
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT, help="Processed-data output folder")
+    parser.add_argument(
+        "--output-dir", type=Path, default=DEFAULT_OUTPUT, help="Processed-data output folder"
+    )
     args = parser.parse_args(argv)
     try:
         export_safe_embeddings(args.splits_csv, args.model, args.output_dir)

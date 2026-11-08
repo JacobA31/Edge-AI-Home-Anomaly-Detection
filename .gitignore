@@ -9,6 +9,8 @@ ml/data/*
 !ml/data/README.md
 ml/models/*
 !ml/models/README.md
+# Generated fall-classifier evaluation reports
+/ml/reports/fall_classifier/
 # frame streams, baselines and checkpoints hold data from a home (and can be GBs)
 *.npz
 mlruns/

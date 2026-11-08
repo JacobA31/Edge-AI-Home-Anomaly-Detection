@@ -51,7 +51,9 @@ def _fold_assignments(groups: dict[str, tuple[int, ...]]) -> dict[int, str]:
 
 
 def split_safe(
-    inventory_path: Path, *, train_folds: tuple[int, ...] = DEFAULT_TRAIN_FOLDS,
+    inventory_path: Path,
+    *,
+    train_folds: tuple[int, ...] = DEFAULT_TRAIN_FOLDS,
     validation_folds: tuple[int, ...] = DEFAULT_VALIDATION_FOLDS,
     test_folds: tuple[int, ...] = DEFAULT_TEST_FOLDS,
 ) -> Path:
@@ -67,7 +69,11 @@ def split_safe(
 
     with inventory_path.open(newline="", encoding="utf-8-sig") as source:
         reader = csv.DictReader(source, strict=True)
-        if not reader.fieldnames or len(reader.fieldnames) != 2 or set(reader.fieldnames) != {"path", "label"}:
+        if (
+            not reader.fieldnames
+            or len(reader.fieldnames) != 2
+            or set(reader.fieldnames) != {"path", "label"}
+        ):
             raise ValueError(
                 "Expected path,label columns; create the inventory with src.fall_classifier.index_safe",
             )
@@ -134,23 +140,34 @@ def split_safe(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "inventory", type=Path, help="SAFE inventory.csv produced by src.fall_classifier.index_safe",
+        "inventory",
+        type=Path,
+        help="SAFE inventory.csv produced by src.fall_classifier.index_safe",
     )
     for name, default in (
-        ("train", DEFAULT_TRAIN_FOLDS), ("validation", DEFAULT_VALIDATION_FOLDS), ("test", DEFAULT_TEST_FOLDS),
+        ("train", DEFAULT_TRAIN_FOLDS),
+        ("validation", DEFAULT_VALIDATION_FOLDS),
+        ("test", DEFAULT_TEST_FOLDS),
     ):
         parser.add_argument(
-            f"--{name}-folds", type=int, nargs="+", choices=range(1, 11), default=default,
+            f"--{name}-folds",
+            type=int,
+            nargs="+",
+            choices=range(1, 11),
+            default=default,
             help=f"Whole folds for {name} (default: {' '.join(map(str, default))})",
         )
     args = parser.parse_args(argv)
     try:
         split_safe(
-            args.inventory, train_folds=tuple(args.train_folds),
-            validation_folds=tuple(args.validation_folds), test_folds=tuple(args.test_folds),
+            args.inventory,
+            train_folds=tuple(args.train_folds),
+            validation_folds=tuple(args.validation_folds),
+            test_folds=tuple(args.test_folds),
         )
     except (OSError, ValueError, csv.Error) as error:
         parser.error(str(error))

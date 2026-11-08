@@ -48,10 +48,17 @@ def test_threshold_ties_with_same_recall_prefer_the_highest_candidate():
     assert threshold == 0.2
 
 
-@pytest.mark.parametrize(("labels", "scores"), [
-    ([], []), ([0, 1], [0.1]), ([0, 2], [0.1, 0.9]),
-    ([0, 1], [float("nan"), 0.9]), ([0, 1], [-0.1, 0.9]), ([0, 1], [0.1, 1.1]),
-])
+@pytest.mark.parametrize(
+    ("labels", "scores"),
+    [
+        ([], []),
+        ([0, 1], [0.1]),
+        ([0, 2], [0.1, 0.9]),
+        ([0, 1], [float("nan"), 0.9]),
+        ([0, 1], [-0.1, 0.9]),
+        ([0, 1], [0.1, 1.1]),
+    ],
+)
 def test_rejects_invalid_labels_and_scores(labels, scores):
     with pytest.raises(ValueError):
         evaluation.select_threshold(labels, scores)
@@ -71,8 +78,10 @@ def saved_run(tmp_path, monkeypatch):
     manifest.parent.mkdir()
     manifest.write_text("path,label,split,features_path,windows\n")
     metadata = {
-        "label_ids": LABEL_IDS, "data": {
-            "manifest": str(manifest), "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
+        "label_ids": LABEL_IDS,
+        "data": {
+            "manifest": str(manifest),
+            "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
             "yamnet_sha256": "a" * 64,
         },
     }

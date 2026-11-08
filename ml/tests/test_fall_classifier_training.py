@@ -123,10 +123,17 @@ def test_training_saves_best_scorer_history_and_provenance_without_test_access(t
     np.testing.assert_allclose(restored_loss, summary["validation_metrics"]["loss"], atol=1e-5)
 
 
-@pytest.mark.parametrize("settings", [
-    {"epochs": 0}, {"batch_size": 0}, {"patience": -1},
-    {"learning_rate": float("nan")}, {"learning_rate": 0}, {"seed": -1},
-])
+@pytest.mark.parametrize(
+    "settings",
+    [
+        {"epochs": 0},
+        {"batch_size": 0},
+        {"patience": -1},
+        {"learning_rate": float("nan")},
+        {"learning_rate": 0},
+        {"seed": -1},
+    ],
+)
 def test_invalid_training_settings_fail_before_loading_data(monkeypatch, settings):
     def unexpected_load(path):
         pytest.fail("Invalid settings should not load recordings")
@@ -168,8 +175,10 @@ def test_mlflow_logging_uses_the_local_store_and_records_history_and_artifacts(t
 
     monkeypatch.setattr(training, "MlflowClient", FakeClient)
     summary = {
-        "settings": {"seed": 42}, "data": {"manifest_sha256": "a" * 64, "yamnet_sha256": "b" * 64},
-        "best_epoch": 2, "validation_metrics": {"loss": 0.3},
+        "settings": {"seed": 42},
+        "data": {"manifest_sha256": "a" * 64, "yamnet_sha256": "b" * 64},
+        "best_epoch": 2,
+        "validation_metrics": {"loss": 0.3},
     }
 
     run_id = training._log_run(tmp_path, summary, {"loss": [0.8, 0.4], "val_loss": [0.7, 0.3]})

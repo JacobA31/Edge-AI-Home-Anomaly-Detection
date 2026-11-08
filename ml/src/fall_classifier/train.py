@@ -1,7 +1,11 @@
-"""Train the first fall classifier on saved edge YAMNet embeddings.
+"""Train the fall classifier on saved edge YAMNet embeddings.
 
 Run from ml/, with requirements installed:
     python -m src.fall_classifier.train
+    python -m src.fall_classifier.train --embedding-scaling none
+
+The second command reproduces the unscaled model's training setup. Both commands
+use the same 64-unit architecture, data split, seed and other training defaults.
 
 Uses 665 training / 95 validation recordings for the default SAFE split. Test
 archives are not opened. The maximum window score is compared with a recording
@@ -45,6 +49,7 @@ class TrainingConfig:
     patience: int = 10
     learning_rate: float = 0.001
     seed: int = 42
+    embedding_scaling: str = "standard"
 
     def validate(self) -> None:
         for name in ("epochs", "batch_size", "patience"):
@@ -55,6 +60,8 @@ class TrainingConfig:
             raise ValueError("learning_rate must be positive and finite")
         if isinstance(self.seed, bool) or not isinstance(self.seed, int) or not 0 <= self.seed < 2**32:
             raise ValueError("seed must be an integer between 0 and 2**32 - 1")
+        if self.embedding_scaling not in {"standard", "none"}:
+            raise ValueError("embedding_scaling must be standard or none")
 
 
 def _batches(recordings, config: TrainingConfig, *, shuffle: bool) -> tf.data.Dataset:
@@ -76,8 +83,13 @@ def _log_run(directory: Path, summary: dict, history: dict) -> str:
     client = MlflowClient(tracking_uri=TRACKING_URI)
     name = "safe-fall-classifier"
     experiment = client.get_experiment_by_name(name)
-    experiment_id = experiment.experiment_id if experiment else client.create_experiment(
-        name, artifact_location=(ML_ROOT / "mlruns" / name).as_uri(),
+    experiment_id = (
+        experiment.experiment_id
+        if experiment
+        else client.create_experiment(
+            name,
+            artifact_location=(ML_ROOT / "mlruns" / name).as_uri(),
+        )
     )
     run = client.create_run(experiment_id, tags={"mlflow.runName": directory.name, "output": str(directory)})
     run_id = run.info.run_id
@@ -103,10 +115,12 @@ def _log_run(directory: Path, summary: dict, history: dict) -> str:
 
 
 def train(
-    manifest_path: Path = DEFAULT_MANIFEST, output_dir: Path = DEFAULT_OUTPUT,
-    *, config: TrainingConfig | None = None,
+    manifest_path: Path = DEFAULT_MANIFEST,
+    output_dir: Path = DEFAULT_OUTPUT,
+    *,
+    config: TrainingConfig | None = None,
 ) -> Path:
-    """Train, select by validation loss, and save a new run without overwriting old runs."""
+    """Train, restore the best validation epoch, then save and log the window scorer."""
     if config is None:
         config = TrainingConfig()
     config.validate()
@@ -115,7 +129,10 @@ def train(
     tf.keras.utils.set_random_seed(config.seed)
     # No validation/test data enters the model's feature-scaling statistics.
     training_windows = np.concatenate([recording.embeddings for recording in data.train])
-    window_model = build_window_model(training_windows)
+    window_model = build_window_model(
+        training_windows,
+        embedding_scaling=config.embedding_scaling,
+    )
     recording_model = build_recording_model(window_model)
     recording_model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=config.learning_rate),
@@ -125,15 +142,26 @@ def train(
     )
     training = _batches(data.train, config, shuffle=True)
     validation = _batches(data.validation, config, shuffle=False)
-    print(f"Training: {len(data.train)} recordings; validation: {len(data.validation)} recordings", flush=True)
+    print(
+        f"Training: {len(data.train)} recordings; validation: {len(data.validation)} recordings", flush=True
+    )
+    print(f"Embedding scaling: {config.embedding_scaling}", flush=True)
     print("Test embeddings stay unopened. One target per recording; maximum valid window score.", flush=True)
     history = recording_model.fit(
-        training, validation_data=validation, epochs=config.epochs, verbose=2,
+        training,
+        validation_data=validation,
+        epochs=config.epochs,
+        verbose=2,
+        shuffle=False,  # The tf.data pipeline already shuffles whole recordings.
         callbacks=[
             tf.keras.callbacks.TerminateOnNaN(),
             tf.keras.callbacks.EarlyStopping(
-                monitor="val_loss", mode="min", min_delta=0, patience=config.patience,
-                restore_best_weights=True, verbose=1,
+                monitor="val_loss",
+                mode="min",
+                min_delta=0,
+                patience=config.patience,
+                restore_best_weights=True,
+                verbose=1,
             ),
         ],
     ).history
@@ -146,16 +174,30 @@ def train(
         raise ValueError("Restored validation metrics are non-finite; no model was saved")
     best_epoch = int(np.argmin(history["val_loss"])) + 1
     summary = {
-        "created_utc": datetime.now(UTC).isoformat(), "tensorflow_version": tf.__version__,
-        "numpy_version": np.__version__, "settings": asdict(config), "data": data.provenance,
-        "label_ids": LABEL_IDS, "input_shape": [None, 1024], "output_shape": [None, 1],
-        "architecture": {"hidden_units": 64, "dropout": 0.2, "l2": 1e-4, "variance_floor": 1e-6},
+        "created_utc": datetime.now(UTC).isoformat(),
+        "tensorflow_version": tf.__version__,
+        "numpy_version": np.__version__,
+        "settings": asdict(config),
+        "data": data.provenance,
+        "label_ids": LABEL_IDS,
+        "input_shape": [None, 1024],
+        "output_shape": [None, 1],
+        "architecture": {
+            "hidden_units": 64,
+            "dropout": 0.2,
+            "l2": 1e-4,
+            "embedding_scaling": config.embedding_scaling,
+            "variance_floor": 1e-6 if config.embedding_scaling == "standard" else None,
+        },
         "training_objective": "recording-level binary crossentropy of maximum valid window score",
         "selection": "minimum validation loss (including regularization); restored best weights",
-        "best_epoch": best_epoch, "epochs_completed": len(history["val_loss"]),
+        "best_epoch": best_epoch,
+        "epochs_completed": len(history["val_loss"]),
         "validation_metrics": {key: float(value) for key, value in metrics.items()},
-        "diagnostic_accuracy_threshold": 0.5, "deployment_threshold": None,
-        "test_evaluated": False, "tracking_uri": TRACKING_URI,
+        "diagnostic_accuracy_threshold": 0.5,
+        "deployment_threshold": None,
+        "test_evaluated": False,
+        "tracking_uri": TRACKING_URI,
         "training_sources": [recording.source_path for recording in data.train],
         "validation_sources": [recording.source_path for recording in data.validation],
         "limitations": (
@@ -170,7 +212,7 @@ def train(
         staging = Path(temporary) / "completed"
         staging.mkdir()
         # The shared scorer now has the best recording model's restored weights.
-        # It contains only standard Keras layers and includes its own scaling.
+        # It contains only standard Keras layers and includes scaling when enabled.
         window_model.save(staging / "window_classifier.keras")
         with (staging / "history.csv").open("w", newline="", encoding="utf-8") as output:
             writer = csv.writer(output)
@@ -178,7 +220,8 @@ def train(
             for index in range(len(history["val_loss"])):
                 writer.writerow([index + 1, *(history[key][index] for key in history)])
         (staging / "run.json").write_text(
-            json.dumps(summary, indent=2, allow_nan=False) + "\n", encoding="utf-8",
+            json.dumps(summary, indent=2, allow_nan=False) + "\n",
+            encoding="utf-8",
         )
         (staging / "manifest.csv").write_bytes(Path(data.provenance["manifest"]).read_bytes())
         staging.replace(destination)
@@ -187,24 +230,44 @@ def train(
     try:
         run_id = _log_run(destination, summary, history)
     except Exception as error:
-        raise RuntimeError(f"Model saved to {destination}, but local MLflow logging failed: {error}") from error
+        raise RuntimeError(
+            f"Model saved to {destination}, but local MLflow logging failed: {error}"
+        ) from error
     print(f"Local MLflow run: {run_id} ({TRACKING_URI})", flush=True)
     return destination
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument(
-        "--output-dir", type=Path, default=DEFAULT_OUTPUT, help="Parent folder for new training runs",
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT,
+        help="Parent folder for new training runs",
     )
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--patience", type=int, default=10)
     parser.add_argument("--learning-rate", type=float, default=0.001)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--embedding-scaling",
+        choices=("standard", "none"),
+        default="standard",
+        help="Scale embedding features using training statistics, or use them unchanged",
+    )
     args = parser.parse_args(argv)
-    config = TrainingConfig(args.epochs, args.batch_size, args.patience, args.learning_rate, args.seed)
+    config = TrainingConfig(
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        patience=args.patience,
+        learning_rate=args.learning_rate,
+        seed=args.seed,
+        embedding_scaling=args.embedding_scaling,
+    )
     try:
         train(args.manifest, args.output_dir, config=config)
     except (OSError, ValueError, RuntimeError, ImportError, csv.Error) as error:

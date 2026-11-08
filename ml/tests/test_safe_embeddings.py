@@ -43,7 +43,8 @@ def fake_model(tmp_path, monkeypatch):
 
     monkeypatch.setattr(edge_pipeline, "YAMNetRunner", FakeRunner)
     monkeypatch.setattr(
-        exporter, "_load_recording",
+        exporter,
+        "_load_recording",
         lambda path: np.linspace(0.1, 0.4, 48000, dtype=np.float32),
     )
     return model, state
@@ -91,10 +92,16 @@ def test_saved_examples_preserve_recording_labels_splits_and_model_identity(tmp_
     np.testing.assert_array_equal(state.prepared[5][9600:], np.zeros(6000, dtype=np.float32))
 
 
-@pytest.mark.parametrize(("length", "count", "last_valid"), [
-    (1, 1, 1), (15600, 1, 15600), (15601, 2, 7921),
-    (23280, 2, 15600), (48000, 6, 9600),
-])
+@pytest.mark.parametrize(
+    ("length", "count", "last_valid"),
+    [
+        (1, 1, 1),
+        (15600, 1, 15600),
+        (15601, 2, 7921),
+        (23280, 2, 15600),
+        (48000, 6, 9600),
+    ],
+)
 def test_short_and_exact_window_boundaries(tmp_path, fake_model, monkeypatch, length, count, last_valid):
     model, state = fake_model
     splits = make_splits(tmp_path / "safe", [("01-001-01-001-01.wav", "fall", "train")])
@@ -110,15 +117,18 @@ def test_short_and_exact_window_boundaries(tmp_path, fake_model, monkeypatch, le
     assert len(state.prepared) == count
 
 
-@pytest.mark.parametrize("rows", [
-    [("01-001-01-001-01.wav", "non_fall", "train")],
-    [("01-001-01-001-01.wav", "fall", "unknown")],
-    [("01-001-01-001-01.wav", "fall", "train")] * 2,
-    [("01-001-01-001-01.wav", "fall", "train"), ("08-002-01-001-01.wav", "fall", "test")],
-    [("01-001-01-001-01.wav", "fall", "train"), ("01-002-01-002-01.wav", "fall", "test")],
-    [("../01-001-01-001-01.wav", "fall", "train")],
-    [],
-])
+@pytest.mark.parametrize(
+    "rows",
+    [
+        [("01-001-01-001-01.wav", "non_fall", "train")],
+        [("01-001-01-001-01.wav", "fall", "unknown")],
+        [("01-001-01-001-01.wav", "fall", "train")] * 2,
+        [("01-001-01-001-01.wav", "fall", "train"), ("08-002-01-001-01.wav", "fall", "test")],
+        [("01-001-01-001-01.wav", "fall", "train"), ("01-002-01-002-01.wav", "fall", "test")],
+        [("../01-001-01-001-01.wav", "fall", "train")],
+        [],
+    ],
+)
 def test_invalid_assignments_fail_before_loading_or_writing(tmp_path, fake_model, rows):
     model, state = fake_model
     splits = make_splits(tmp_path / "safe", rows)
@@ -133,10 +143,13 @@ def test_invalid_assignments_fail_before_loading_or_writing(tmp_path, fake_model
 
 def test_processing_failure_preserves_previous_export(tmp_path, fake_model, monkeypatch):
     model, _ = fake_model
-    splits = make_splits(tmp_path / "safe", [
-        ("01-001-01-001-01.wav", "fall", "train"),
-        ("08-002-00-002-02.wav", "non_fall", "validation"),
-    ])
+    splits = make_splits(
+        tmp_path / "safe",
+        [
+            ("01-001-01-001-01.wav", "fall", "train"),
+            ("08-002-00-002-02.wav", "non_fall", "validation"),
+        ],
+    )
     output = tmp_path / "processed"
     exporter.export_safe_embeddings(splits, model, output)
     before = {path.relative_to(output): path.read_bytes() for path in output.rglob("*") if path.is_file()}
