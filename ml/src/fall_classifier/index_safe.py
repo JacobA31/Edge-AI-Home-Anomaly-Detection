@@ -1,7 +1,7 @@
 """Create a SAFE recording inventory without changing or processing the audio.
 
 Run from ml/:
-    python -m src.index_safe data/safe
+    python -m src.fall_classifier.index_safe data/safe
 
 Writes inventory.csv in the supplied folder, with path,label columns. Paths are
 relative to that folder. Labels describe recordings, not individual audio windows:

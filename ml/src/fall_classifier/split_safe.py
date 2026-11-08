@@ -1,7 +1,7 @@
 """Assign SAFE recordings to training, validation, and test sets without moving audio.
 
 Run from ml/:
-    python -m src.split_safe data/safe/inventory.csv
+    python -m src.fall_classifier.split_safe data/safe/inventory.csv
 
 Writes splits.csv beside the inventory, with path,label,split columns. Paths
 remain relative to that folder. The inventory and recordings stay unchanged.
@@ -68,7 +68,9 @@ def split_safe(
     with inventory_path.open(newline="", encoding="utf-8-sig") as source:
         reader = csv.DictReader(source, strict=True)
         if not reader.fieldnames or len(reader.fieldnames) != 2 or set(reader.fieldnames) != {"path", "label"}:
-            raise ValueError("Expected an inventory with path,label columns; create it with src.index_safe")
+            raise ValueError(
+                "Expected path,label columns; create the inventory with src.fall_classifier.index_safe",
+            )
         for line, row in enumerate(reader, start=2):
             path_text = (row.get("path") or "").strip()
             label = (row.get("label") or "").strip()
@@ -134,7 +136,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("inventory", type=Path, help="SAFE inventory.csv produced by src.index_safe")
+    parser.add_argument(
+        "inventory", type=Path, help="SAFE inventory.csv produced by src.fall_classifier.index_safe",
+    )
     for name, default in (
         ("train", DEFAULT_TRAIN_FOLDS), ("validation", DEFAULT_VALIDATION_FOLDS), ("test", DEFAULT_TEST_FOLDS),
     ):
