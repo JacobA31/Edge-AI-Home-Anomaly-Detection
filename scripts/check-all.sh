@@ -5,6 +5,6 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "== backend";  (cd "$root/backend"  && ruff check . && pytest -q)
 echo "== edge";     (cd "$root/edge"     && ruff check . && pytest -q)
-echo "== ml";       (cd "$root"          && ruff check ml)
+echo "== ml";       (cd "$root"          && ruff check ml && cd ml && pytest -q)
 echo "== frontend"; (cd "$root/frontend" && npm run lint && npm run build)
 echo "All checks passed."

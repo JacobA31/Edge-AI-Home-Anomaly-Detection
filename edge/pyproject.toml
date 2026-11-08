@@ -13,19 +13,26 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Installed on the Pi only (audio + model runtime). Not needed for CI tests.
+# Dependencies for Pi audio capture and model inference.
 pi = [
     "numpy",
     "sounddevice",
     "ai-edge-litert",
 ]
 dev = [
+    "numpy",  # the anomaly module's tests need it (on the Pi it comes with `pi`)
+    "ai-edge-litert",  # also run YAMNet model checks on laptops
     "pytest>=8",
     "ruff>=0.6",
+    "jsonschema",  # the event-schema test
+    "scikit-learn",  # the OAS-vs-sklearn test
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"e3_edge.anomaly" = ["yamnet_class_map.csv"]
 
 [tool.ruff]
 line-length = 110
