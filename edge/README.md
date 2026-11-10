@@ -15,12 +15,13 @@ edge/
 │   ├── outbox.py       SQLite queue for outages (events only, never audio)
 │   ├── sender.py       HTTPS POST to the backend with retries
 │   ├── audio/          preprocessing, LiteRT YAMNet, and frame creation
+│   ├── fall_classifier/ LiteRT fall scoring and model/settings validation
 │   └── anomaly/        household baseline + acoustic/behavioural anomaly detection
 │                       (docs/anomaly-detection.md; CLI: python -m e3_edge.anomaly)
 ├── tests/
 ├── deploy/
 │   ├── e3-edge.service systemd unit (auto-start, auto-restart)
-│   ├── download_models.py download and validate the configured YAMNet model (and fall classifier later)
+│   ├── download_models.py download and validate YAMNet and the fall model/settings
 │   └── update.sh       pull latest main and restart
 └── config.example.yaml copy to config.yaml on the Pi
 ```
@@ -72,7 +73,19 @@ E3_YAMNET_MODEL=../ml/models/yamnet.tflite python -m pytest \
     tests/test_audio*.py tests/test_config.py tests/test_model_download.py -q
 ```
 
+Also set `E3_FALL_CLASSIFIER_MODEL=../ml/models/fall_classifier.tflite` to include
+the real classifier/settings and YAMNet compatibility check. The JSON must be beside the model.
+
 ## First-time Pi setup
+
+Publish the configured GitHub Releases before running `update.sh`:
+
+- `yamnet-v1`: `yamnet.tflite`.
+- `fall-classifier-v1`: both `fall_classifier.tflite` and its matching `fall_classifier.json`.
+
+Release tags and local model paths come from `config.yaml`. Classifier settings are saved
+beside the model; the threshold comes from JSON, not YAML. The downloader checks all three
+assets and their compatibility before installation. Failures stop the update before service restart.
 
 ```bash
 sudo apt install -y git gh python3-venv libportaudio2
@@ -85,7 +98,7 @@ gh auth login
 ```
 
 After that, `/opt/e3/edge/deploy/update.sh` installs whatever is on `main`.
-Models (`.tflite`) come from the GitHub Release made by the ML team, not from Git history.
+Models and classifier settings come from GitHub Releases made by the ML team, not Git history.
 
 ## Anomaly module on the Pi
 
