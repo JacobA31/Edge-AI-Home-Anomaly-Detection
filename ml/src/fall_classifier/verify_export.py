@@ -1,4 +1,4 @@
-"""Compare the selected Keras and exported LiteRT classifiers on saved SAFE embeddings.
+"""Compare the selected Keras classifier and real edge runner on saved SAFE embeddings.
 
 Run from ml/:
     python -m src.fall_classifier.verify_export
@@ -20,19 +20,14 @@ from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
-from ai_edge_litert.interpreter import Interpreter, OpResolverType
+from e3_edge.fall_classifier import FallClassifierRunner
 
 from .dataset import LABEL_IDS, Recording, load_evaluation_split, load_training_data
 from .evaluate import _save_json, _write_csv, classification_metrics, proposal_checks
 from .export import (
     DEFAULT_OUTPUT,
     DEFAULT_SELECTION,
-    INPUT_NAME,
-    INPUT_SHAPE,
     ML_ROOT,
-    OUTPUT_NAME,
-    OUTPUT_SHAPE,
-    SIGNATURE_NAME,
     _load_selection,
 )
 
@@ -56,20 +51,13 @@ PREDICTION_COLUMNS = [
 
 
 def _load_export(path: Path, selection: dict):
-    """Verify the model/metadata pair and the actual LiteRT input/output contract."""
+    """Bind the saved selection to the model/settings loaded by the edge runner."""
     metadata_path = path.with_suffix(".json")
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    model_bytes = path.read_bytes()
-    if (
-        metadata.get("schema_version") != 1
-        or metadata.get("model_file") != path.name
-        or metadata.get("model_sha256") != hashlib.sha256(model_bytes).hexdigest()
-    ):
-        raise ValueError("Exported model does not match its companion metadata")
+    if not isinstance(metadata, dict):
+        raise ValueError("Export metadata must be a JSON object")
     if metadata.get("source_model_sha256") != selection["model_sha256"]:
         raise ValueError("Export came from a different Keras model")
-    if metadata.get("signature_name") != SIGNATURE_NAME:
-        raise ValueError("Export metadata names a different inference signature")
     for key in (
         "threshold",
         "decision_rule",
@@ -81,28 +69,14 @@ def _load_export(path: Path, selection: dict):
     ):
         if metadata.get(key) != selection[key]:
             raise ValueError(f"Exported {key} differs from the saved selection; re-export first")
-    interpreter = Interpreter(
-        model_content=model_bytes,
-        num_threads=1,
-        experimental_op_resolver_type=OpResolverType.BUILTIN_WITHOUT_DEFAULT_DELEGATES,
-    )
-    interpreter.allocate_tensors()
-    signature = interpreter.get_signature_list().get(SIGNATURE_NAME, {})
-    if signature.get("inputs") != [INPUT_NAME] or signature.get("outputs") != [OUTPUT_NAME]:
-        raise ValueError("Expected the exported embedding/fall_score signature")
-    runner = interpreter.get_signature_runner(SIGNATURE_NAME)
-    for key, details, name, shape in (
-        ("input", runner.get_input_details(), INPUT_NAME, INPUT_SHAPE),
-        ("output", runner.get_output_details(), OUTPUT_NAME, OUTPUT_SHAPE),
+    runner = FallClassifierRunner(path)
+    if (
+        runner.model_sha256 != metadata.get("model_sha256")
+        or runner.threshold != selection["threshold"]
+        or runner.yamnet_sha256 != selection["yamnet_sha256"]
     ):
-        if (
-            metadata.get(key) != {"name": name, "shape": list(shape), "dtype": "float32"}
-            or details[name]["dtype"] != np.float32
-            or tuple(details[name]["shape"]) != shape
-        ):
-            raise ValueError(f"Exported {key} contract is invalid")
-    # Keep the interpreter alive while its signature runner is in use.
-    return metadata_path, metadata, interpreter, runner
+        raise ValueError("Loaded edge model/settings differ from the selected export")
+    return metadata_path, metadata, runner
 
 
 def _scores(value, shape: tuple[int, int]) -> np.ndarray:
@@ -117,15 +91,10 @@ def _scores(value, shape: tuple[int, int]) -> np.ndarray:
     return values[:, 0].astype(np.float64)
 
 
-def _compare(recording: Recording, model, runner, threshold: float) -> dict:
+def _compare(recording: Recording, model, runner: FallClassifierRunner, threshold: float) -> dict:
     count = len(recording.embeddings)
     reference = _scores(model(recording.embeddings, training=False), (count, 1))
-    actual = np.array(
-        [
-            _scores(runner(embedding=np.ascontiguousarray(embedding[None, :]))[OUTPUT_NAME], OUTPUT_SHAPE)[0]
-            for embedding in recording.embeddings
-        ]
-    )
+    actual = np.array([runner.predict(embedding) for embedding in recording.embeddings])
     keras_score, tflite_score = float(reference.max()), float(actual.max())
     keras_decision = "fall" if keras_score >= threshold else "non_fall"
     tflite_decision = "fall" if tflite_score >= threshold else "non_fall"
@@ -155,6 +124,7 @@ def _report(result: dict) -> str:
         f"Checked {result['recordings']} recordings and {result['windows']} audio windows.",
         f"Keras SHA-256: `{result['source_model_sha256']}`.",
         f"LiteRT SHA-256: `{result['model_sha256']}`.",
+        f"LiteRT inference uses `{result['inference_runner']}`.",
         "",
         f"Maximum absolute window-score difference: **{result['max_window_error']:.8g}**.",
         f"Scores outside tolerance: **{result['window_score_failures']}**.",
@@ -206,7 +176,7 @@ def verify_export(
             raise ValueError("Reports must be separate from models and input embeddings")
     if hashlib.sha256(manifest.read_bytes()).hexdigest() != selection["manifest_sha256"]:
         raise ValueError("Manifest changed since model selection")
-    metadata_path, metadata, _interpreter, runner = _load_export(model_path, selection)
+    metadata_path, metadata, runner = _load_export(model_path, selection)
     model = tf.keras.models.load_model(source_path, compile=False)
     if model.input_shape != (None, 1024) or model.output_shape != (None, 1):
         raise ValueError("Expected the selected 1024-input, one-score Keras model")
@@ -224,7 +194,10 @@ def verify_export(
         ),
     }
     threshold = float(selection["threshold"])
-    print(f"Comparing original Keras and exported LiteRT at fixed threshold {threshold}...", flush=True)
+    print(
+        f"Comparing original Keras and edge FallClassifierRunner at fixed threshold {threshold}...",
+        flush=True,
+    )
     rows = []
     for split, recordings in groups.items():
         for recording in recordings:
@@ -250,6 +223,7 @@ def verify_export(
         "created_utc": datetime.now(UTC).isoformat(),
         "passed": parity_passed and targets_passed,
         "parity_passed": parity_passed,
+        "inference_runner": "e3_edge.fall_classifier.FallClassifierRunner",
         "proposal_targets_passed": targets_passed,
         "source_model_sha256": selection["model_sha256"],
         "model_sha256": metadata["model_sha256"],
@@ -281,6 +255,7 @@ def verify_export(
         for key in (
             "created_utc",
             "model_sha256",
+            "inference_runner",
             "manifest_sha256",
             "threshold",
             "recordings",
