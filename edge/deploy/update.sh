@@ -8,6 +8,7 @@ cd edge
 [ -d .venv ] || python3 -m venv .venv
 .venv/bin/pip install -q -e ".[pi]"
 # Install/authenticate GitHub CLI (gh) for the user running this script first.
+# The downloader checks and installs YAMNet plus the classifier/model-settings pair.
 # A failed download or validation exits here, before restarting the service.
 .venv/bin/python deploy/download_models.py --sudo-install
 sudo systemctl restart e3-edge

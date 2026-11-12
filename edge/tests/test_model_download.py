@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from e3_edge.config import YAMNetConfig
+from e3_edge.config import Config, FallClassifierConfig, YAMNetConfig
 
 SCRIPT = Path(__file__).resolve().parents[1] / "deploy" / "download_models.py"
 EXAMPLE_CONFIG = SCRIPT.parents[1] / "config.example.yaml"
@@ -28,14 +28,24 @@ def github(tmp_path, monkeypatch):
     payload = b"verified-model"
     state = SimpleNamespace(
         settings=YAMNetConfig(model_path=str(tmp_path / "installed" / "yamnet.tflite")),
-        payload=payload, download_bytes=payload, calls=[], validations=[], directories=[],
-        download_error=False, validation_error=False,
+        payload=payload,
+        download_bytes=payload,
+        calls=[],
+        validations=[],
+        directories=[],
+        download_error=False,
+        validation_error=False,
         metadata={
-            "tag_name": "yamnet-v1", "draft": False,
-            "assets": [{
-                "name": "yamnet.tflite", "state": "uploaded", "size": len(payload),
-                "digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
-            }],
+            "tag_name": "yamnet-v1",
+            "draft": False,
+            "assets": [
+                {
+                    "name": "yamnet.tflite",
+                    "state": "uploaded",
+                    "size": len(payload),
+                    "digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+                }
+            ],
         },
     )
 
@@ -124,7 +134,8 @@ def test_changed_release_downloads_its_model_instead_of_reusing_the_old_one(gith
     github.payload = github.download_bytes = b"new-model"
     github.metadata["tag_name"] = "yamnet/v2"
     github.metadata["assets"][0].update(
-        size=len(github.payload), digest="sha256:" + hashlib.sha256(github.payload).hexdigest(),
+        size=len(github.payload),
+        digest="sha256:" + hashlib.sha256(github.payload).hexdigest(),
     )
 
     download_models.download_yamnet(github.settings)
@@ -134,10 +145,19 @@ def test_changed_release_downloads_its_model_instead_of_reusing_the_old_one(gith
     assert download_calls(github)[0][-1] == "yamnet/v2"
 
 
-@pytest.mark.parametrize("problem", [
-    "draft", "wrong-tag", "missing-asset", "duplicate-asset", "not-uploaded",
-    "empty-size", "missing-digest", "wrong-digest-format",
-])
+@pytest.mark.parametrize(
+    "problem",
+    [
+        "draft",
+        "wrong-tag",
+        "missing-asset",
+        "duplicate-asset",
+        "not-uploaded",
+        "empty-size",
+        "missing-digest",
+        "wrong-digest-format",
+    ],
+)
 def test_invalid_release_metadata_preserves_the_installed_model(github, problem):
     destination = install_existing(github, b"previous-model")
     asset = github.metadata["assets"][0]
@@ -312,9 +332,20 @@ def test_cli_uses_configuration_and_an_explicit_local_output(tmp_path, monkeypat
 
     monkeypatch.setattr(download_models, "download_yamnet", download)
 
-    assert download_models.main([
-        "--config", str(EXAMPLE_CONFIG), "--repo", "team/project", "--output", str(output), *flags,
-    ]) == 0
+    assert (
+        download_models.main(
+            [
+                "--config",
+                str(EXAMPLE_CONFIG),
+                "--repo",
+                "team/project",
+                "--output",
+                str(output),
+                *flags,
+            ]
+        )
+        == 0
+    )
 
     settings, options = captured[0]
     assert settings.release == "yamnet-v1" and settings.model_path == str(output.resolve())
@@ -340,3 +371,263 @@ def test_cli_reports_failure_without_installing_a_model(github, capsys):
 )
 def test_real_local_yamnet_passes_installer_validation():
     download_models._validate_model(Path(os.environ["E3_YAMNET_MODEL"]))
+
+
+@pytest.fixture
+def model_releases(tmp_path, monkeypatch):
+    yamnet = b"new-yamnet"
+    classifier = b"new-fall-classifier"
+    metadata = {
+        "model_sha256": hashlib.sha256(classifier).hexdigest(),
+        "yamnet_sha256": hashlib.sha256(yamnet).hexdigest(),
+    }
+    state = SimpleNamespace(
+        settings=Config(
+            device_id="test-pi",
+            room="living room",
+            backend_url="https://example.invalid",
+            function_key="test",
+            queue_db=str(tmp_path / "queue.sqlite"),
+            yamnet=YAMNetConfig(model_path=str(tmp_path / "installed" / "yamnet.tflite")),
+            fall_classifier=FallClassifierConfig(
+                model_path=str(tmp_path / "installed" / "fall_classifier.tflite"),
+            ),
+        ),
+        payloads={
+            "yamnet-v1": {"yamnet.tflite": yamnet},
+            "fall-classifier-v1": {
+                "fall_classifier.tflite": classifier,
+                "fall_classifier.json": json.dumps(metadata).encode(),
+            },
+        },
+        calls=[],
+        corrupt=None,
+        interrupt=False,
+        invalid_model=False,
+        hide_metadata=False,
+        missing_digest=False,
+        validations=[],
+    )
+
+    def github_call(arguments):
+        state.calls.append(arguments)
+        if arguments[:2] == ["repo", "view"]:
+            return "team/project\n"
+        if arguments[0] == "api":
+            tag = arguments[1].rsplit("/", 1)[-1]
+            assets = []
+            for name, payload in state.payloads[tag].items():
+                if state.hide_metadata and name == "fall_classifier.json":
+                    continue
+                digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+                assets.append(
+                    {
+                        "name": name,
+                        "state": "uploaded",
+                        "size": len(payload),
+                        "digest": None if state.missing_digest and name.endswith(".json") else digest,
+                    }
+                )
+            return json.dumps({"tag_name": tag, "draft": False, "assets": assets})
+        if arguments[:2] == ["release", "download"]:
+            name = arguments[arguments.index("--pattern") + 1]
+            if state.interrupt and name == "fall_classifier.json":
+                raise RuntimeError("download interrupted")
+            target = Path(arguments[arguments.index("--dir") + 1]) / name
+            payload = state.payloads[arguments[-1]][name]
+            target.write_bytes(b"corrupt" if state.corrupt == name else payload)
+            return ""
+        pytest.fail(f"Unexpected GitHub command: {arguments}")
+
+    def check_yamnet(path):
+        assert path.read_bytes() == yamnet
+        state.validations.append("yamnet")
+
+    class FakeFallRunner:
+        def __init__(self, path):
+            settings = json.loads(path.with_suffix(".json").read_text())
+            if settings["model_sha256"] != hashlib.sha256(path.read_bytes()).hexdigest():
+                raise ValueError("model and metadata differ")
+            self.yamnet_sha256 = settings["yamnet_sha256"]
+
+        def predict(self, embedding):
+            if state.invalid_model:
+                raise ValueError("inference failed")
+            assert embedding.shape == (1024,)
+            state.validations.append("fall")
+            return 0.2
+
+    monkeypatch.setattr(download_models, "_run_gh", github_call)
+    monkeypatch.setattr(download_models, "_validate_model", check_yamnet)
+    monkeypatch.setattr(download_models, "FallClassifierRunner", FakeFallRunner)
+    return state
+
+
+def model_destinations(state):
+    return [
+        Path(state.settings.yamnet.model_path),
+        Path(state.settings.fall_classifier.model_path),
+        Path(state.settings.fall_classifier.metadata_path),
+    ]
+
+
+def install_old_set(state):
+    before = {}
+    for path in model_destinations(state):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        before[path] = ("previous-" + path.name).encode()
+        path.write_bytes(before[path])
+    return before
+
+
+def test_complete_install_downloads_and_verifies_all_three_files(model_releases):
+    state = model_releases
+    paths = download_models.download_models(state.settings)
+    assert paths == tuple(model_destinations(state)[:2])
+    for path in model_destinations(state):
+        tag = "yamnet-v1" if path.name == "yamnet.tflite" else "fall-classifier-v1"
+        assert path.read_bytes() == state.payloads[tag][path.name]
+        assert path.stat().st_mode & 0o777 == 0o644
+    assert state.validations == ["yamnet", "fall"]
+    assert len(download_calls(state)) == 3
+
+
+def test_complete_install_reuses_matching_files_without_downloading(model_releases):
+    state = model_releases
+    download_models.download_models(state.settings)
+    state.calls.clear()
+    state.validations.clear()
+    download_models.download_models(state.settings)
+    assert not download_calls(state)
+    assert state.validations == ["yamnet", "fall"]
+
+
+@pytest.mark.parametrize(
+    "problem",
+    [
+        "download",
+        "corrupt_model",
+        "corrupt_metadata",
+        "mismatched_pair",
+        "yamnet_version",
+        "inference",
+        "missing_metadata",
+        "missing_digest",
+    ],
+)
+def test_failed_model_set_validation_preserves_every_installed_file(model_releases, problem):
+    state = model_releases
+    before = install_old_set(state)
+    if problem == "download":
+        state.interrupt = True
+    elif problem.startswith("corrupt"):
+        state.corrupt = "fall_classifier.tflite" if problem == "corrupt_model" else "fall_classifier.json"
+    elif problem in {"mismatched_pair", "yamnet_version"}:
+        metadata = json.loads(state.payloads["fall-classifier-v1"]["fall_classifier.json"])
+        metadata["model_sha256" if problem == "mismatched_pair" else "yamnet_sha256"] = "0" * 64
+        state.payloads["fall-classifier-v1"]["fall_classifier.json"] = json.dumps(metadata).encode()
+    elif problem == "inference":
+        state.invalid_model = True
+    elif problem == "missing_metadata":
+        state.hide_metadata = True
+    else:
+        state.missing_digest = True
+    with pytest.raises((ValueError, RuntimeError)):
+        download_models.download_models(state.settings)
+    assert {path: path.read_bytes() for path in before} == before
+
+
+@pytest.mark.parametrize("existing", [True, False])
+@pytest.mark.parametrize("privileged", [True, False])
+def test_install_failure_restores_previous_files_or_removes_new_ones(
+    model_releases,
+    monkeypatch,
+    existing,
+    privileged,
+):
+    state = model_releases
+    before = install_old_set(state) if existing else {}
+    install = download_models._install_model
+    failed = False
+    install_options = []
+
+    def fail_metadata_once(source, destination, **options):
+        nonlocal failed
+        install_options.append(options["sudo_install"])
+        if destination.name == "fall_classifier.json" and not failed:
+            failed = True
+            raise OSError("disk full during metadata installation")
+        # Simulate filesystem effects without ever invoking real sudo in tests.
+        install(source, destination, sudo_install=False)
+
+    def privileged_remove(command, **options):
+        assert command[:4] == ["sudo", "rm", "-f", "--"]
+        Path(command[-1]).unlink(missing_ok=True)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(download_models, "_install_model", fail_metadata_once)
+    monkeypatch.setattr(download_models.subprocess, "run", privileged_remove)
+    with pytest.raises(OSError, match="disk full"):
+        download_models.download_models(state.settings, sudo_install=privileged)
+    assert install_options and all(option == privileged for option in install_options)
+    for path in model_destinations(state):
+        if existing:
+            assert path.read_bytes() == before[path]
+        else:
+            assert not path.exists()
+
+
+def test_classifier_only_install_checks_existing_yamnet(model_releases):
+    state = model_releases
+    yamnet = Path(state.settings.yamnet.model_path)
+    yamnet.parent.mkdir(parents=True)
+    yamnet.write_bytes(state.payloads["yamnet-v1"]["yamnet.tflite"])
+    destination = download_models.download_fall_classifier(state.settings.fall_classifier, yamnet_path=yamnet)
+    assert destination == Path(state.settings.fall_classifier.model_path)
+    assert len(download_calls(state)) == 2
+    assert yamnet.read_bytes() == state.payloads["yamnet-v1"]["yamnet.tflite"]
+
+
+def test_cli_default_uses_the_complete_installer(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        download_models, "download_models", lambda settings, **options: calls.append(settings)
+    )
+    assert download_models.main(["--config", str(EXAMPLE_CONFIG)]) == 0
+    assert calls[0].fall_classifier.release == "fall-classifier-v1"
+
+
+def test_cli_classifier_output_keeps_the_yamnet_location(tmp_path, monkeypatch):
+    calls = []
+    output = tmp_path / "fall_classifier.tflite"
+    monkeypatch.setattr(
+        download_models,
+        "download_fall_classifier",
+        lambda settings, **options: calls.append((settings, options)),
+    )
+    assert (
+        download_models.main(
+            [
+                "--config",
+                str(EXAMPLE_CONFIG),
+                "--model",
+                "fall-classifier",
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+    assert calls[0][0].model_path == str(output)
+    assert calls[0][1]["yamnet_path"] == Path("/var/lib/e3/models/yamnet.tflite")
+
+
+@pytest.mark.skipif(
+    not (os.environ.get("E3_YAMNET_MODEL") and os.environ.get("E3_FALL_CLASSIFIER_MODEL")),
+    reason="Set both model paths to check the real local classifier/YAMNet pair",
+)
+def test_real_local_classifier_and_yamnet_pass_installer_validation():
+    download_models._validate_fall_classifier(
+        Path(os.environ["E3_FALL_CLASSIFIER_MODEL"]),
+        Path(os.environ["E3_YAMNET_MODEL"]),
+    )

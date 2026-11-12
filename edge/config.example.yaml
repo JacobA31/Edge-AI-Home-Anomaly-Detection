@@ -16,6 +16,12 @@ yamnet:
   release: yamnet-v1
   model_path: /var/lib/e3/models/yamnet.tflite
 
+# Publish fall_classifier.tflite AND fall_classifier.json in this release.
+# JSON stays beside the model and supplies the threshold; do not repeat it in YAML.
+fall_classifier:
+  release: fall-classifier-v1
+  model_path: /var/lib/e3/models/fall_classifier.tflite
+
 storage:
   queue_db: /var/lib/e3/queue.sqlite                  # offline event queue (no audio, ever)
 
