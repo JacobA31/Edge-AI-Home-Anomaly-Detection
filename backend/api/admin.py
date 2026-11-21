@@ -1,4 +1,4 @@
-"""POST /api/admin/migrate – applies new SQL files in db/migrations/.
+"""POST /api/maintenance/migrate – applies new SQL files in db/migrations/.
 
 Called by the backend GitHub workflow right after each deploy. It runs inside Azure,
 so the PostgreSQL firewall only needs "Allow access from Azure services".
@@ -15,7 +15,8 @@ from db.migrate import apply_migrations
 bp = func.Blueprint()
 
 
-@bp.route(route="admin/migrate", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
+# Azure reserves routes beginning with "admin", even with the default /api prefix.
+@bp.route(route="maintenance/migrate", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
 def migrate(req: func.HttpRequest) -> func.HttpResponse:
     try:
         applied = apply_migrations()

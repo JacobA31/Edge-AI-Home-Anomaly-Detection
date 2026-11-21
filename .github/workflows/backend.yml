@@ -87,7 +87,7 @@ jobs:
           for i in 1 2 3 4 5 6; do
             code=$(curl -s -o response.json -w "%{http_code}" -X POST \
               -H "x-functions-key: $MIGRATE_KEY" \
-              "${AZURE_FUNCTIONAPP_URL}/api/admin/migrate")
+              "${AZURE_FUNCTIONAPP_URL}/api/maintenance/migrate")
             if [ "$code" = "200" ]; then cat response.json; exit 0; fi
             echo "Attempt $i returned $code, retrying in 20s"; sleep 20
           done
