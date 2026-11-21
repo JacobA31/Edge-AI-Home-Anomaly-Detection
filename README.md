@@ -2,6 +2,11 @@
 
 SYSC 4907 capstone (Fall 2026 – Winter 2027), supervised by Dr. Rose Gomar.
 
+## Deployed app
+
+- [Caregiver dashboard](https://gray-flower-0b39f4510.8.azurestaticapps.net)
+- [Backend health check](https://e3-api-fareed-cxerdyfactajescj.northcentralus-01.azurewebsites.net/api/health)
+
 One repository holds every part of the system. Each top-level folder has its own
 GitHub Actions workflow and only runs when files in that folder change.
 
