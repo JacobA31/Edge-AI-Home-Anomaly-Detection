@@ -1,7 +1,7 @@
 """Tiny migration runner: applies db/migrations/NNN_name.sql files in order, once each.
 
 Run it locally with:  python -m db.migrate     (needs DATABASE_URL in your environment)
-In Azure it runs through POST /api/admin/migrate after every deploy.
+In Azure it runs through POST /api/maintenance/migrate after every deploy.
 """
 
 from pathlib import Path

@@ -10,7 +10,7 @@ backend/
 │   ├── health.py            GET  /api/health          (public)
 │   ├── events.py            POST /api/events          (Pi, needs function key)
 │   │                        GET  /api/events          (dashboard)
-│   └── admin.py             POST /api/admin/migrate   (CI only, needs function key)
+│   └── admin.py             POST /api/maintenance/migrate (CI only, needs function key)
 ├── validation.py            checks events against shared/event.schema.json
 ├── db/
 │   ├── connection.py        reads DATABASE_URL
