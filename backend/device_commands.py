@@ -54,7 +54,29 @@ def main() -> None:
             return json.load(reply)
 
     try:
-        command = post("/next", {})["command"]
+        collected = post("/next", {})
+        policy = collected["consent"]
+        command = collected["command"]
+        print(f"Consent: {policy['state']} (version {policy['version']}).")
+        if not policy["device_confirmed"]:
+            if not policy["monitoring_allowed"]:
+                print("STOP REQUIRED: the real Pi must stop capture, analysis and monitoring-data "
+                      "collection.")
+                outcome = input("Simulate stopping [success/failure/leave]: ").strip().lower()
+                if outcome != "success":
+                    print("Stopping remains unconfirmed. Resume is blocked.")
+                    return
+            else:
+                print("Synchronizing granted permission. This simulation keeps monitoring muted "
+                      "until a resume request.")
+            post("/consent/ack", {
+                "version": policy["version"], "monitoring_state": "muted", "elapsed_seconds": 0,
+            })
+            print("Simulated consent policy confirmed; monitoring is muted.")
+            if not policy["monitoring_allowed"]:
+                if command is not None and command["action"] == "mute":
+                    post(f"/commands/{command['command_id']}/ack", {"succeeded": True, "elapsed_seconds": 0})
+                return
         if command is None:
             print("No outstanding command. Request mute/resume in the dashboard first, then run again.")
             return
@@ -63,6 +85,12 @@ def main() -> None:
         outcome = input("Simulated outcome [success/failure/leave]: ").strip().lower()
         if outcome not in {"success", "failure"}:
             print("Left unconfirmed. Run the simulator again to pick up the same request.")
+            return
+        # Permission may have been withdrawn while the operator was answering.
+        latest = post("/next", {})
+        if latest["consent"]["version"] != policy["version"]:
+            print("Consent changed. No command execution was simulated. Run again to apply "
+                  "the current policy.")
             return
         executed_at = time.monotonic()
         reply = post(f"/commands/{command['command_id']}/ack", {

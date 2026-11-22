@@ -119,3 +119,13 @@ summary { cursor: pointer; font-weight: 600; }
 .device-control-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .device-command-status { line-height: 1.5; }
 
+.consent-status { padding: .75rem 1rem; margin-block: 1rem; border: 1px solid #d6dee6;
+  border-radius: 7px; background: #f5f7fa; }
+.consent-status p { margin: .35rem 0; }
+.consent-blocked { background: #fff8e8; border-color: #e2cc98; }
+.consent-granted { background: #edf7f0; border-color: #b7d4c0; }
+.consent-page { margin-block: 1rem; }
+.consent-page > p { line-height: 1.6; }
+.consent-check { display: flex; align-items: flex-start; gap: .75rem; line-height: 1.5; }
+.consent-check input { width: 1.2rem; height: 1.2rem; flex-shrink: 0; margin-top: .2rem; }
+

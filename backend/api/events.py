@@ -12,6 +12,7 @@ import azure.functions as func
 from psycopg import Error
 
 from db.accounts import get_session_account
+from db.devices import DeviceError
 from db.events import get_events, save_event
 from event_cursor import decode_cursor
 from security import session_token
@@ -36,6 +37,8 @@ def post_event(req: func.HttpRequest) -> func.HttpResponse:
 
     try:
         inserted = save_event(event)
+    except DeviceError as exc:
+        return _json({"error": str(exc)}, exc.status)
     except (Error, RuntimeError):
         logging.exception("Could not save event %s", event["event_id"])
         return _json({"error": "event could not be saved; retry later"}, 503)

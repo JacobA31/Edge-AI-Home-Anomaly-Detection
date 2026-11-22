@@ -1,9 +1,10 @@
 import { apiRequest } from "./client";
+import type { ConsentPolicy } from "./consent";
 
 export interface DeviceCommand {
   command_id: string;
   action: "mute" | "resume";
-  status: "pending" | "delivered" | "completed" | "failed" | "expired";
+  status: "pending" | "delivered" | "completed" | "failed" | "expired" | "cancelled";
   requested_at: string;
   expires_at: string;
   delivered_at: string | null;
@@ -21,6 +22,7 @@ export interface Device {
   offline_after_seconds: number;
   controls_configured: boolean;
   latest_command: DeviceCommand | null;
+  consent: ConsentPolicy;
 }
 
 export interface DeviceAccess {

@@ -16,6 +16,13 @@ from db.devices import DeviceError
 bp = func.Blueprint()
 
 
+def elapsed_value(value) -> float:
+    if (type(value) not in (int, float) or not 0 <= value <= 3155760000
+            or not math.isfinite(value)):
+        raise InvalidInput("elapsed_seconds must be finite and between 0 and 3155760000")
+    return value
+
+
 @bp.route(route="devices/{device_id}/commands", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
 @device_endpoint
 def request_device_command(req: func.HttpRequest, user: dict) -> func.HttpResponse:
@@ -53,7 +60,7 @@ def pi_endpoint(handler):
 @bp.route(route="device-control/{device_id}/next", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
 @pi_endpoint
 def pick_up_device_command(req: func.HttpRequest, token: str) -> func.HttpResponse:
-    return response({"command": device_commands.pick_up(req.route_params["device_id"], token)})
+    return response(device_commands.pick_up(req.route_params["device_id"], token))
 
 
 @bp.route(route="device-control/{device_id}/commands/{command_id}/ack", methods=["POST"],
@@ -63,10 +70,7 @@ def acknowledge_device_command(req: func.HttpRequest, token: str) -> func.HttpRe
     body = read_body(req)
     if set(body) != {"succeeded", "elapsed_seconds"} or type(body.get("succeeded")) is not bool:
         raise InvalidInput("provide succeeded (boolean) and elapsed_seconds since execution")
-    elapsed = body["elapsed_seconds"]
-    if (type(elapsed) not in (int, float) or not 0 <= elapsed <= 3155760000
-            or not math.isfinite(elapsed)):
-        raise InvalidInput("elapsed_seconds must be finite and between 0 and 3155760000")
+    elapsed = elapsed_value(body["elapsed_seconds"])
     try:
         command_id = str(UUID(req.route_params["command_id"]))
     except ValueError as exc:

@@ -82,6 +82,12 @@ def process_claim(claim: tuple, mode: str, settings=None) -> str:
         job = cursor.fetchone()
         if job is None:
             return "skipped"
+        # Legacy queued jobs must not bypass the new initial-consent requirement.
+        if conn.execute(
+            "SELECT consent_first_granted_at FROM devices WHERE device_id = %s", (job["device_id"],),
+        ).fetchone()[0] is None:
+            _finish(conn, job, "cancelled", "initial monitoring consent has not been recorded")
+            return "cancelled"
         # Lock the membership during SMTP submission. Revocation either completes
         # first (cancel this delivery), or waits until the already-authorized send ends.
         permitted = conn.execute(

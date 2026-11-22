@@ -40,12 +40,14 @@ export default function DeviceControls({ device, onChanged, onSignedOut }: {
       {command.status === "completed" && "Device confirmed success."}
       {command.status === "failed" && "Device reported failure. Check the device before trying again."}
       {command.status === "expired" && "Expired without being collected. No change was confirmed."}
+      {command.status === "cancelled" && "Cancelled because monitoring consent changed."}
     </p>}
     {manager && <>
       <div className="device-control-actions">
         <button type="button" className="secondary" disabled={busy || outstanding || !device.controls_configured}
           onClick={() => void request("mute")}>Mute monitoring</button>
-        <button type="button" className="secondary" disabled={busy || outstanding || !device.controls_configured}
+        <button type="button" className="secondary" disabled={busy || outstanding || !device.controls_configured
+          || !device.consent.monitoring_allowed}
           onClick={() => void request("resume")}>Resume monitoring</button>
       </div>
       <p className="device-status-note">
@@ -53,6 +55,9 @@ export default function DeviceControls({ device, onChanged, onSignedOut }: {
           : outstanding ? "Monitoring changes only when the device applies the request and confirms it."
             : "Only the trusted caregiver can request changes. Uncollected requests expire after 10 minutes."}
       </p>
+      {!device.consent.monitoring_allowed && <p className="device-status-note">
+        Resume requires the person’s consent. Mute/resume controls cannot give or restore that permission.
+      </p>}
       {outstanding && device.connection_status !== "online"
         && <p className="device-status-note">The device is offline. A remote request cannot change it while disconnected.</p>}
       {error && <p className="error" role="alert">{error}</p>}

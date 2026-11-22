@@ -6,6 +6,7 @@ import { acceptInvitation, claimDevice, fetchAccess, inviteCaregiver,
   removeCaregiver, revokeInvitation } from "../api/devices";
 import type { Device, DeviceAccess } from "../api/devices";
 import DeviceControls from "./DeviceControls";
+import ConsentStatus from "./ConsentStatus";
 import DeviceStatus from "./DeviceStatus";
 
 interface Props {
@@ -52,6 +53,10 @@ export default function DevicePanel({ devices, onChanged, onSignedOut }: Props) 
           <h3>{device.room}</h3>
           <p>{device.device_id}</p>
           <DeviceStatus device={device} />
+          <ConsentStatus consent={device.consent} />
+          {!device.consent.first_granted_at && <p className="device-status-note">
+            Device linked. Monitoring and alert access await the person’s consent during setup.
+          </p>}
           <p>{device.role === "trusted_caregiver" ? "Trusted caregiver — you manage access."
             : "Read-only caregiver — you can view events and device information."}</p>
           <DeviceControls device={device} onChanged={onChanged} onSignedOut={onSignedOut} />
@@ -62,7 +67,7 @@ export default function DevicePanel({ devices, onChanged, onSignedOut }: Props) 
                 {managing === device.device_id ? "Close access settings" : "Manage access"}
               </button>
               {managing === device.device_id && <AccessManager deviceId={device.device_id}
-                onChanged={onChanged} onSignedOut={onSignedOut} />}
+                canInvite={device.consent.monitoring_allowed} onChanged={onChanged} onSignedOut={onSignedOut} />}
             </>
           )}
         </article>
@@ -98,8 +103,8 @@ export default function DevicePanel({ devices, onChanged, onSignedOut }: Props) 
   );
 }
 
-function AccessManager({ deviceId, onChanged, onSignedOut }: {
-  deviceId: string; onChanged: () => void; onSignedOut: (message: string) => void;
+function AccessManager({ deviceId, canInvite, onChanged, onSignedOut }: {
+  deviceId: string; canInvite: boolean; onChanged: () => void; onSignedOut: (message: string) => void;
 }) {
   const [access, setAccess] = useState<DeviceAccess | null>(null);
   const [email, setEmail] = useState("");
@@ -171,7 +176,8 @@ function AccessManager({ deviceId, onChanged, onSignedOut }: {
           ))}
         </ul>
         <form onSubmit={invite}>
-          <fieldset disabled={busy}>
+          {!canInvite && <p>Monitoring consent must be granted before inviting additional caregivers.</p>}
+          <fieldset disabled={busy || !canInvite}>
             <label>Caregiver email to invite
               <input type="email" value={email} onChange={(event) => setEmail(event.target.value)}
                 required maxLength={254} />

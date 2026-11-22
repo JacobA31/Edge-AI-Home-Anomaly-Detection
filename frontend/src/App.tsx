@@ -7,9 +7,10 @@ import AccountPanel from "./components/AccountPanel";
 import AuthForm from "./components/AuthForm";
 import AlertHistoryPage from "./components/AlertHistoryPage";
 import DeviceDashboard from "./components/DeviceDashboard";
+import ConsentPage from "./components/ConsentPage";
 import "./App.css";
 
-export default function App() {
+function CaregiverApp() {
   const historyPage = window.location.pathname.replace(/\/$/, "") === "/history";
   const [user, setUser] = useState<Account | null>(null);
   const [checking, setChecking] = useState(true);
@@ -48,6 +49,7 @@ export default function App() {
   return (
     <main>
       <h1>E3 Caregiver Dashboard</h1>
+      <p><a href="/consent" className="button-link">Monitoring consent</a></p>
       {sessionError && <p className="error" role="alert">{sessionError}</p>}
       {checking ? <p role="status">Checking your login…</p> : !user ? (
         <AuthForm notice={notice} onLogin={(account) => {
@@ -75,4 +77,11 @@ export default function App() {
       )}
     </main>
   );
+}
+
+export default function App() {
+  if (window.location.pathname.replace(/\/$/, "") === "/consent") {
+    return <main><h1>E3 Monitoring Consent</h1><ConsentPage /></main>;
+  }
+  return <CaregiverApp />;
 }
