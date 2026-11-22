@@ -76,6 +76,11 @@ summary { cursor: pointer; font-weight: 600; }
 .history-alert-heading h3 { font-size: 1rem; margin: 0; }
 .history-alert-heading time { color: #46576a; font-size: 0.9rem; }
 .history-room { font-weight: 600; }
+.delayed-notice { margin: 0.85rem 0; padding: 0.75rem 1rem; border: 1px solid #e2cc98;
+  border-radius: 7px; background: #fff8e8; color: #654b1b; }
+.delayed-badge { display: inline-block; font-size: 0.8rem; font-weight: 700; padding: 0.2rem 0.5rem;
+  border-radius: 4px; background: #f2e2b9; }
+.delayed-notice p { font-size: 0.9rem; line-height: 1.5; margin: 0.5rem 0 0; }
 .history-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
   gap: 1rem; margin-bottom: 1.5rem; }
 .back-link { display: inline-flex; align-items: center; gap: 0.6rem; border-color: #d6dee6;

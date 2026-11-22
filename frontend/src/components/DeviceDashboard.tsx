@@ -3,13 +3,13 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, fetchAlerts } from "../api/client";
 import { fetchDevices } from "../api/devices";
 import type { Device } from "../api/devices";
-import type { E3Event } from "../types/event";
+import type { RecordedEvent } from "../types/event";
 import { LatestAlert, RecentAlerts } from "./Alerts";
 import DevicePanel from "./DevicePanel";
 
 export default function DeviceDashboard({ onSignedOut }: { onSignedOut: (message: string) => void }) {
   const [devices, setDevices] = useState<Device[]>([]);
-  const [events, setEvents] = useState<E3Event[]>([]);
+  const [events, setEvents] = useState<RecordedEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);

@@ -1,4 +1,4 @@
-import type { E3Event } from "../types/event";
+import type { RecordedEvent } from "../types/event";
 
 // Empty in local dev (Vite proxies /api to func start); the Function App URL in production.
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -20,13 +20,13 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   return body as T;
 }
 
-export async function fetchEvents(): Promise<E3Event[]> {
-  const body = await apiRequest<{ events: E3Event[] }>("/events");
+export async function fetchEvents(): Promise<RecordedEvent[]> {
+  const body = await apiRequest<{ events: RecordedEvent[] }>("/events");
   return body.events;
 }
 
 export interface AlertPage {
-  events: E3Event[];
+  events: RecordedEvent[];
   next_cursor: string | null;
 }
 

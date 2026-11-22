@@ -6,6 +6,7 @@ from uuid import UUID
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
+from alert_delivery import delivery_info
 from db.connection import get_connection
 from db.notifications import enqueue_alert
 from device_status import monitoring_report
@@ -92,6 +93,7 @@ def get_events(account_id: str, limit: int, since: datetime | None = None,
     more = len(rows) > limit
     events = rows[:limit]
     for event in events:
+        event.update(delivery_info(event))
         event["event_id"] = str(event["event_id"])
         for field in ("detected_at", "received_at"):
             event[field] = event[field].astimezone(UTC).isoformat().replace("+00:00", "Z")

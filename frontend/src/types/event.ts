@@ -1,4 +1,4 @@
-// Mirrors shared/event.schema.json. Update both in the same PR.
+// Pi message fields mirror shared/event.schema.json.
 
 export type EventType =
   | "fall"
@@ -17,4 +17,12 @@ export interface E3Event {
   elapsed_seconds: number;
   confidence?: number;
   details?: Record<string, unknown>;
+}
+
+// Read-only metadata supplied by the backend; it is not part of the Pi message schema.
+export interface RecordedEvent extends E3Event {
+  received_at: string;
+  is_delayed: boolean;
+  delivery_delay_seconds: number;
+  delivery_delay_label: string;
 }

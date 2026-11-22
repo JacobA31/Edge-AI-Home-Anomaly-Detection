@@ -74,7 +74,7 @@ def process_claim(claim: tuple, mode: str, settings=None) -> str:
     notification_id, token = claim
     with get_connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
         cursor.execute(
-            "SELECT n.*, e.device_id, e.event_type, e.room, e.detected_at, e.received_at "
+            "SELECT n.*, e.device_id, e.event_type, e.room, e.detected_at, e.received_at, e.elapsed_seconds "
             "FROM email_notifications n JOIN events e ON e.event_id = n.event_id "
             "WHERE n.notification_id = %s AND n.claim_token = %s AND n.status = 'processing' "
             "AND n.delivery_mode = %s FOR UPDATE OF n", (notification_id, token, mode),

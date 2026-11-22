@@ -12,6 +12,8 @@ from email.policy import SMTP
 from email.utils import format_datetime
 from urllib.parse import urlencode, urlsplit
 
+from alert_delivery import delivery_info
+
 
 class DeliveryError(Exception):
     def __init__(self, reason: str, *, retryable: bool = False, uncertain: bool = False):
@@ -88,15 +90,22 @@ def build_message(job: dict, sender: str) -> EmailMessage:
     titles = {"fall": "Possible fall", "anomaly": "Unusual sound activity", "inactivity": "Inactivity"}
     title = titles[job["event_type"]]
     room = " ".join(job["room"].split())
+    delivery = delivery_info(job)
     message = EmailMessage(policy=SMTP)
     message["From"] = str(Address(display_name="E3 Caregiver Alerts", addr_spec=address(sender).addr_spec))
     message["To"] = str(recipient)
-    message["Subject"] = f"E3 alert: {title} — {room}"
+    prefix = "E3 delayed alert" if delivery["is_delayed"] else "E3 alert"
+    message["Subject"] = f"{prefix}: {title} — {room}"
     message["Message-ID"] = f"<{job['notification_id']}@{address(sender).domain}>"
     message["Date"] = format_datetime(job["queued_at"])
     link = f"{dashboard_url()}/history?{urlencode({'device_id': job['device_id']})}"
+    delayed_notice = (
+        "DELAYED ALERT — original detection time is shown below.\n"
+        f"The device sent this alert about {delivery['delivery_delay_label']} after detection.\n\n"
+        if delivery["is_delayed"] else ""
+    )
     message.set_content(
-        f"{title} reported in {room}.\n\n"
+        delayed_notice + f"{title} reported in {room}.\n\n"
         f"Device: {job['device_id']}\n"
         f"Detected (UTC): {job['detected_at'].astimezone(UTC).isoformat()}\n"
         f"Received by server (UTC): {job['received_at'].astimezone(UTC).isoformat()}\n\n"

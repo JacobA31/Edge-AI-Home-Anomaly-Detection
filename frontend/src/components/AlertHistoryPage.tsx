@@ -3,14 +3,14 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, fetchAlerts } from "../api/client";
 import { fetchDevices } from "../api/devices";
 import type { Device } from "../api/devices";
-import type { E3Event } from "../types/event";
+import type { RecordedEvent } from "../types/event";
 import { AlertHistory } from "./Alerts";
 import DeviceFilter from "./DeviceFilter";
 
 const PAGE_SIZE = 20;
 
 export default function AlertHistoryPage({ onSignedOut }: { onSignedOut: (message: string) => void }) {
-  const [events, setEvents] = useState<E3Event[]>([]);
+  const [events, setEvents] = useState<RecordedEvent[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [selectedDevice, setSelectedDevice] = useState(() =>
     new URLSearchParams(window.location.search).get("device_id") ?? "");

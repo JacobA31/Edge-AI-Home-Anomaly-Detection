@@ -1,4 +1,4 @@
-import type { E3Event } from "../types/event";
+import type { RecordedEvent } from "../types/event";
 
 const descriptions: Record<string, { title: string; summary: string }> = {
   fall: { title: "Possible fall", summary: "A possible fall was detected" },
@@ -15,11 +15,11 @@ const findings: Record<string, string> = {
   post_impact_silence: "A quiet period followed an impact sound",
 };
 
-function description(event: E3Event) {
+function description(event: RecordedEvent) {
   return descriptions[event.event_type] ?? { title: "Alert", summary: "An alert was reported" };
 }
 
-function summary(event: E3Event): string {
+function summary(event: RecordedEvent): string {
   const kind = event.details?.kind;
   const finding = event.event_type !== "fall" && typeof kind === "string" ? findings[kind] : undefined;
   return `${finding ?? description(event).summary} in ${event.room}.`;
@@ -27,11 +27,20 @@ function summary(event: E3Event): string {
 
 function AlertTime({ value }: { value: string }) {
   return <time dateTime={value}>{new Date(value).toLocaleString(undefined, {
-    dateStyle: "medium", timeStyle: "short",
+    dateStyle: "medium", timeStyle: "medium",
   })}</time>;
 }
 
-export function LatestAlert({ event }: { event?: E3Event }) {
+function DeliveryNotice({ event }: { event: RecordedEvent }) {
+  if (!event.is_delayed) return null;
+  return <div className="delayed-notice">
+    <span className="delayed-badge">Delayed alert</span>
+    <p>The device sent this alert about {event.delivery_delay_label} after detection.</p>
+    <p>Received by server: <AlertTime value={event.received_at} /></p>
+  </div>;
+}
+
+export function LatestAlert({ event }: { event?: RecordedEvent }) {
   return (
     <section className={`latest-alert ${event ? `alert-${event.event_type}` : "alert-empty"}`}
       aria-labelledby="latest-alert-title">
@@ -44,6 +53,7 @@ export function LatestAlert({ event }: { event?: E3Event }) {
             <div><dt>Room</dt><dd>{event.room}</dd></div>
             <div><dt>Detected</dt><dd><AlertTime value={event.detected_at} /></dd></div>
           </dl>
+          <DeliveryNotice event={event} />
           <p className="alert-device">Device: {event.device_id}</p>
         </> : <>
           <p className="alert-label">No alerts yet</p>
@@ -54,17 +64,18 @@ export function LatestAlert({ event }: { event?: E3Event }) {
   );
 }
 
-function AlertList({ events }: { events: E3Event[] }) {
+function AlertList({ events }: { events: RecordedEvent[] }) {
   return (
     <ol className="alert-history-list">
           {events.map((event) => <li className={`history-alert alert-${event.event_type}`} key={event.event_id}>
             <article>
               <div className="history-alert-heading">
                 <h3>{description(event).title}</h3>
-                <AlertTime value={event.detected_at} />
+                <span>Detected: <AlertTime value={event.detected_at} /></span>
               </div>
               <p className="history-room">{event.room}</p>
               <p>{summary(event)}</p>
+              <DeliveryNotice event={event} />
               <p className="alert-device">Device: {event.device_id}</p>
             </article>
           </li>)}
@@ -72,7 +83,7 @@ function AlertList({ events }: { events: E3Event[] }) {
   );
 }
 
-export function RecentAlerts({ events }: { events: E3Event[] }) {
+export function RecentAlerts({ events }: { events: RecordedEvent[] }) {
   return (
     <section className="alert-history" aria-labelledby="recent-alerts-title">
       <h2 id="recent-alerts-title">Recent alerts</h2>
@@ -84,12 +95,13 @@ export function RecentAlerts({ events }: { events: E3Event[] }) {
 }
 
 export function AlertHistory({ events, hasMore, loadingMore, onLoadMore }: {
-  events: E3Event[]; hasMore: boolean; loadingMore: boolean; onLoadMore: () => void;
+  events: RecordedEvent[]; hasMore: boolean; loadingMore: boolean; onLoadMore: () => void;
 }) {
   return (
     <section className="alert-history" aria-labelledby="alert-history-title" aria-busy={loadingMore}>
       <h2 id="alert-history-title">Alert history</h2>
       <p className="history-caption">Newest first. Times are shown in your local timezone.</p>
+      <p className="history-caption">Alerts are ordered by detection time, including alerts received later.</p>
       {events.length === 0 ? <p>Your saved alerts will appear here.</p> : <>
         <p role="status">Showing {events.length} {events.length === 1 ? "alert" : "alerts"}.</p>
         <AlertList events={events} />
