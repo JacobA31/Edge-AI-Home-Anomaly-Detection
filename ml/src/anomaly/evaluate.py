@@ -17,11 +17,13 @@ What it measures (all against held-out days, never the calibration days):
    much of the separation is the recording setup rather than the fall;
 2. behavioural, per embedding context: falls, running water and impact bursts planted into the
    test days (inject.py) -> detection rate and latency; and false alerts per day on the
-   untouched test days. The fall classifier isn't built yet, so stand-ins notify the planted
-   falls: an ideal one, and weaker ones that miss falls, are late or fire falsely;
+   untouched test days. Stand-ins notify the planted falls: an ideal one, and weaker ones that
+   miss falls, are late or fire falsely. With `--fall-model`, the real fall classifier scores every
+   frame as well (fall_model.py), and its false triggers on the untouched days are listed;
 3. how much calibration audio is needed; 4. static vs adapting baseline;
 5. (`--parts classifier`) the behavioural results against the stand-in's delay, recall and false
-   triggers; 6. (`--parts tuning`) the same against threshold settings, recalibrating for each.
+   triggers, or with `--fall-model` the real classifier at several thresholds; 6. (`--parts tuning`)
+   the same against threshold settings, recalibrating for each (with the real classifier if given).
 """
 
 from __future__ import annotations
@@ -31,16 +33,19 @@ import json
 import time
 from collections import Counter
 from dataclasses import dataclass, replace
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import numpy as np
 from e3_edge.anomaly import AnomalyConfig, AnomalyDetector, Baseline, FrameStream
-from e3_edge.anomaly.categories import DEFAULT_CATEGORIES, CategoryMapper
+from e3_edge.anomaly.categories import DEFAULT_CATEGORIES, CategoryMapper, class_names
 from e3_edge.anomaly.frames import observed_seconds
 from e3_edge.anomaly.simulate import FALL, HouseholdSimulator
 
-from . import metrics
+from . import fall_model, metrics
+from .fall_model import NOTIFY_WINDOW_SECONDS, RealClassifier, select_folds, split_candidates
 from .inject import EXPECT, Planted, Planter
 from .methods import Scorer, calibrate_edge, default_methods, parse_context
 
@@ -169,7 +174,7 @@ def _per_day(findings: list, days: float) -> dict[str, float]:
 
 @dataclass(frozen=True)
 class ClassifierStandIn:
-    """Plays the fall classifier, which isn't built yet: it notices `recall` of the planted falls,
+    """Plays a fall classifier of a set quality: it notices `recall` of the planted falls,
     `delay_s` after each one starts, and fires `false_per_day` times on other sounds of the home.
 
     A real classifier's false alarms come from real sounds (a door, a dropped pan), not from
@@ -197,12 +202,14 @@ class ClassifierStandIn:
         return sorted(hits + [(x, self.confidence) for x in false]), false
 
 
-SCENARIOS: dict[str, ClassifierStandIn | None] = {
+Classifier = ClassifierStandIn | RealClassifier | None
+
+SCENARIOS: dict[str, Classifier] = {
     "impact_trigger_only": None,  # no classifier: only YAMNet's impact category starts a watch
     "ideal_classifier": ClassifierStandIn(),
     "weaker_classifier": ClassifierStandIn(recall=0.8, delay_s=2.0, false_per_day=5.0),
 }
-CLASSIFIER_SWEEP: dict[str, ClassifierStandIn | None] = {
+CLASSIFIER_SWEEP: dict[str, Classifier] = {
     "ideal": ClassifierStandIn(),
     "delay_2s": ClassifierStandIn(delay_s=2.0),
     "delay_5s": ClassifierStandIn(delay_s=5.0),
@@ -222,8 +229,9 @@ def sound_rows(stream: FrameStream) -> np.ndarray:
 
 def behavioural(baseline: Baseline, test: FrameStream, falls: FrameStream | None, cfg: AnomalyConfig,
                 per_kind: int, seeds: tuple[int, ...] = (0,),
-                scenarios: dict[str, ClassifierStandIn | None] | None = None) -> dict[str, Any]:
-    """Untouched test days, then planted anomalies replayed once per seed and scenario."""
+                scenarios: dict[str, Classifier] | None = None) -> dict[str, Any]:
+    """Untouched test days, then planted anomalies replayed once per seed and scenario. A real
+    classifier also runs over the untouched days, where everything it notifies is a false trigger."""
     scenarios = SCENARIOS if scenarios is None else scenarios
     days = hours(test, cfg) / 24
     clean = run_detector(baseline, test).findings
@@ -237,18 +245,57 @@ def behavioural(baseline: Baseline, test: FrameStream, falls: FrameStream | None
         planter = Planter(test, falls, seed)
         planter.schedule(per_kind)
         out["available"] = planter.available()
-        for k, (name, standin) in enumerate(scenarios.items()):
+        fall_starts = [p.start for p in planter.planted if p.kind == "fall"]
+        for k, (name, clf) in enumerate(scenarios.items()):
             candidates, false = [], []
-            if standin is not None:
+            if isinstance(clf, RealClassifier):
+                candidates = clf.candidates(planter.target, test, planter.touched())
+                false = split_candidates(candidates, fall_starts)
+            elif clf is not None:
                 rng = np.random.default_rng([seed, k])
-                candidates, false = standin.candidates(planter.planted, test, sounds, days, rng)
+                candidates, false = clf.candidates(planter.planted, test, sounds, days, rng)
             replay = run_detector(baseline, planter.target, fall_candidates=candidates)
-            tallies[name].add(planter.planted, replay.findings, false)
+            tallies[name].add(planter.planted, replay.findings, false,
+                              None if clf is None else candidates)
         out["thresholds"] = replay.detector.thresholds.to_dict()
         del planter
     out["seeds"] = list(seeds)
     out |= {name: tally.summary(days * len(seeds)) for name, tally in tallies.items()}
+    for name, clf in scenarios.items():
+        if isinstance(clf, RealClassifier):
+            out[name]["untouched_test_days"] = classifier_on_untouched(baseline, test, clf, cfg, days)
     return out
+
+
+def classifier_on_untouched(baseline: Baseline, test: FrameStream, clf: RealClassifier,
+                            cfg: AnomalyConfig, days: float) -> dict[str, Any]:
+    """The real classifier on the untouched test days: every notification is a false trigger.
+    Alerts per day here are the module's with the classifier connected, the number to compare
+    with the untouched days without it."""
+    candidates = clf.candidates(test)
+    findings = run_detector(baseline, test, fall_candidates=candidates).findings
+    times = np.array([t for t, _ in candidates])
+    from_trigger = {round(float(times[np.argmin(np.abs(times - f.started_at))]), 3)
+                    for f in findings if f.role == "alert" and f.extra.get("trigger") == "fall_candidate"
+                    and len(times) and np.min(np.abs(times - f.started_at)) <= 2.0}
+    rows = np.searchsorted(test.timestamps, times - clf.frame_seconds) if len(times) else np.array([], int)
+    tz, names = ZoneInfo(cfg.timezone), class_names()
+    triggers = []
+    if len(rows) and test.scores is not None:
+        mapper = CategoryMapper(DEFAULT_CATEGORIES)
+        full = test.full_scores()[rows]
+        cats = mapper.scores_batch(full)
+        for j, ((t, confidence), row) in enumerate(zip(candidates, rows, strict=True)):
+            heard = [n for i, n in enumerate(mapper.names) if cats[j, i] >= DEFAULT_CATEGORIES[n].on]
+            triggers.append({
+                "local_time": datetime.fromtimestamp(float(test.timestamps[row]), tz).strftime("%a %H:%M:%S"),
+                "score": round(confidence, 3), "top_class": names[int(np.argmax(full[j]))],
+                "categories": heard, "level_dbfs": None if test.level_dbfs is None
+                else round(float(test.level_dbfs[row]), 1),
+                "became_alert": round(t, 3) in from_trigger})
+    return {**_per_day(findings, days), "false_triggers": len(candidates),
+            "false_triggers_per_day": round(len(candidates) / days, 2),
+            "false_trigger_alerts": len(from_trigger), "triggers": triggers}
 
 
 class Tally:
@@ -268,8 +315,19 @@ class Tally:
         self.false_triggers = 0
         self.false_trigger_alerts = 0
 
-    def add(self, planted: list[Planted], findings: list, false_triggers: list[float] = ()) -> None:
+    def add(self, planted: list[Planted], findings: list, false_triggers: list[float] = (),
+            candidates: list[tuple[float, float]] | None = None) -> None:
+        """`candidates`: the classifier's notifications, to time how soon each planted fall got one."""
         caused = set()
+        if candidates is not None:
+            times = np.sort([t for t, _ in candidates])
+            for p in planted:
+                if p.kind != "fall":
+                    continue
+                k = int(np.searchsorted(times, p.start))
+                hit = k < len(times) and times[k] - p.start <= NOTIFY_WINDOW_SECONDS
+                self.latencies.setdefault("fall:classifier_notified", []).append(
+                    float(times[k] - p.start) if hit else None)
         for p in planted:
             end = p.start + p.length
             mine = [i for i, f in enumerate(findings) if f.detected_at >= p.start
@@ -386,25 +444,28 @@ def with_overrides(cfg: AnomalyConfig, overrides: dict[str, Any]) -> AnomalyConf
 
 def tuning(calib: FrameStream, test: FrameStream, falls: FrameStream | None, cfg: AnomalyConfig,
            context: str, per_kind: int, seeds: tuple[int, ...],
-           variants: list[tuple[str, dict[str, Any]]] | None = None) -> list[dict]:
+           variants: list[tuple[str, dict[str, Any]]] | None = None,
+           fall_classifier: RealClassifier | None = None) -> list[dict]:
+    """Falls are notified by the ideal stand-in, or by `fall_classifier` when given."""
+    key = "ideal_classifier" if fall_classifier is None else "real_classifier"
+    scenarios = {"impact_trigger_only": None, key: fall_classifier or SCENARIOS[key]}
     rows = []
     for label, overrides in variants or TUNING_VARIANTS:
         variant = with_overrides(cfg, overrides)
         baseline = calibrate_edge(calib, variant, *parse_context(context))
-        b = behavioural(baseline, test, falls, variant, per_kind, seeds,
-                        {k: SCENARIOS[k] for k in ("impact_trigger_only", "ideal_classifier")})
-        rows.append({"variant": label, "overrides": overrides, **_tuning_row(b)})
+        b = behavioural(baseline, test, falls, variant, per_kind, seeds, scenarios)
+        rows.append({"variant": label, "overrides": overrides, **_tuning_row(b, key)})
     return rows
 
 
-def _tuning_row(b: dict[str, Any]) -> dict[str, Any]:
+def _tuning_row(b: dict[str, Any], fall_key: str = "ideal_classifier") -> dict[str, Any]:
     """The numbers the threshold choice is made on, flattened for one table row."""
     clean = b["untouched_test_days"]
     row = {"alerts_per_day": clean["alerts_per_day"], "evidence_per_day": clean["evidence_per_day"],
            "alerts_by_kind": clean["alerts_by_kind"]}
-    if "ideal_classifier" not in b:
+    if fall_key not in b:
         return row
-    ideal, alone = b["ideal_classifier"], b["impact_trigger_only"]
+    ideal, alone = b[fall_key], b["impact_trigger_only"]
 
     def get(summary: dict, key: str, field: str) -> Any:
         return summary.get(key, {}).get(field)
@@ -421,7 +482,21 @@ def _tuning_row(b: dict[str, Any]) -> dict[str, Any]:
         "burst_rate": get(ideal, "impact_burst:repeated_impacts", "detection_rate"),
         "burst_s_median": get(ideal, "impact_burst:repeated_impacts", "latency_s_median"),
         "stray_alerts_per_day": ideal["stray_alerts_per_day"],
-    }
+    } | _classifier_columns(ideal)
+
+
+def _classifier_columns(s: dict[str, Any]) -> dict[str, Any]:
+    """How soon planted falls were notified and, for a real classifier, what it did on untouched days."""
+    notified = s.get("fall:classifier_notified", {})
+    out = {"notified_rate": notified.get("detection_rate"),
+           "notified_s_median": notified.get("latency_s_median"),
+           "notified_s_max": notified.get("latency_s_max")}
+    if "untouched_test_days" in s:
+        u = s["untouched_test_days"]
+        out |= {"untouched_alerts_per_day": u["alerts_per_day"],
+                "false_triggers_per_day": u["false_triggers_per_day"],
+                "false_trigger_alerts": u["false_trigger_alerts"]}
+    return out
 
 
 # ---- data, report, CLI ------------------------------------------------------------------------------
@@ -438,9 +513,14 @@ def evaluate(calib: FrameStream, test: FrameStream, falls: FrameStream | None, *
              methods: list[Scorer] | None = None, contexts: tuple[str, ...] | None = None,
              quantile: float = 0.999, per_kind: int = 10, max_test_frames: int = 50_000,
              curve_hours: tuple = (6, 12, 24, 48, 72, 120), seed: int = 0,
-             plant_seeds: tuple[int, ...] | None = None, parts: tuple = DEFAULT_PARTS) -> dict:
+             plant_seeds: tuple[int, ...] | None = None, parts: tuple = DEFAULT_PARTS,
+             fall_classifier: RealClassifier | None = None, fall_thresholds: tuple[float, ...] = (),
+             variants: list[str] | None = None, info: dict | None = None) -> dict:
     """`contexts`: embedding contexts the behavioural part compares (default: the config's); the
-    classifier and tuning parts use the first. The calibration curve and adaptation use `cfg`."""
+    classifier and tuning parts use the first. The calibration curve and adaptation use `cfg`.
+    `fall_classifier` adds the real classifier to the behavioural scenarios, replaces the stand-in
+    sweep with `fall_thresholds` and notifies falls in the tuning part. `variants`: names from
+    TUNING_VARIANTS to run (default all). `info` is added to the results' data section."""
     cfg = cfg or AnomalyConfig()
     has_scores = calib.scores is not None
     if has_scores and test.scores is None:
@@ -452,7 +532,11 @@ def evaluate(calib: FrameStream, test: FrameStream, falls: FrameStream | None, *
         "fall_frames": 0 if falls is None else len(falls),
         "non_fall_frames": 0 if non_falls is None else len(non_falls), "embedding_dim": calib.dim,
         "class_scores": has_scores, "levels": calib.level_dbfs is not None,
-        "timezone": cfg.timezone, "contexts": list(contexts), "plant_seeds": list(plant_seeds)}}
+        "timezone": cfg.timezone, "contexts": list(contexts), "plant_seeds": list(plant_seeds),
+        **(info or {})}}
+    scenarios = dict(SCENARIOS)
+    if fall_classifier is not None:
+        scenarios["real_classifier"] = fall_classifier
     if "frame_level" in parts:
         results["frame_level"] = frame_level(
             methods or default_methods(has_scores, cfg), calib, test, falls, cfg,
@@ -461,7 +545,7 @@ def evaluate(calib: FrameStream, test: FrameStream, falls: FrameStream | None, *
     if "behavioural" in parts:
         results["behavioural"] = {
             name: behavioural(calibrate_edge(calib, cfg, *parse_context(name)), test, falls, cfg,
-                              per_kind, plant_seeds)
+                              per_kind, plant_seeds, scenarios)
             for name in contexts}
     if "calibration_curve" in parts:
         results["calibration_curve"] = calibration_curve(calib, test, falls, cfg, list(curve_hours), seed)
@@ -469,10 +553,16 @@ def evaluate(calib: FrameStream, test: FrameStream, falls: FrameStream | None, *
         results["adaptation"] = adaptation(calib, test, cfg)
     if "classifier" in parts:
         baseline = calibrate_edge(calib, cfg, *parse_context(contexts[0]))
-        results["classifier"] = behavioural(baseline, test, falls, cfg, per_kind, plant_seeds,
-                                            CLASSIFIER_SWEEP)
+        sweep = CLASSIFIER_SWEEP
+        if fall_classifier is not None:
+            thresholds = sorted(set(fall_thresholds) | {fall_classifier.threshold})
+            sweep = {"ideal": ClassifierStandIn(),
+                     **{f"real_{t:g}": replace(fall_classifier, threshold=t) for t in thresholds}}
+        results["classifier"] = behavioural(baseline, test, falls, cfg, per_kind, plant_seeds, sweep)
     if "tuning" in parts:
-        results["tuning"] = tuning(calib, test, falls, cfg, contexts[0], per_kind, plant_seeds)
+        chosen = [v for v in TUNING_VARIANTS if variants is None or v[0] in variants]
+        results["tuning"] = tuning(calib, test, falls, cfg, contexts[0], per_kind, plant_seeds, chosen,
+                                   fall_classifier)
     return results
 
 
@@ -509,6 +599,9 @@ def report(results: dict, synthetic: bool) -> str:
         lines += [f"### `{name}`: untouched test days ({b['test_days']})", "",
                   "```", json.dumps(b["untouched_test_days"], indent=2), "```", ""]
         lines += _scenario_tables(b, f"`{name}`, planted anomalies (seeds {b.get('seeds')})")
+        real = b.get("real_classifier", {}).get("untouched_test_days")
+        if real:
+            lines += _trigger_section(real, results["data"].get("fall_classifier", {}))
     if "calibration_curve" in results:
         cols = ["calibration_hours", "components", "test_frames_flagged", "target_flagged", "auc",
                 "alerts_per_day", "confident_alerts_per_day"]
@@ -522,30 +615,49 @@ def report(results: dict, synthetic: bool) -> str:
         rows = []
         for k in scenarios:
             s = c[k]
-            rows.append({"stand_in": k, **{f"{f}_{m}": s.get(f"fall:{f}", {}).get(m)
-                                          for f in ("post_impact_silence", "post_impact_inactivity")
-                                          for m in ("detection_rate", "latency_s_max")},
+            rows.append({"classifier": k, **{f"{f}_{m}": s.get(f"fall:{f}", {}).get(m)
+                                            for f in ("post_impact_silence", "post_impact_inactivity")
+                                            for m in ("detection_rate", "latency_s_max")},
                          "stray_alerts_per_day": s["stray_alerts_per_day"],
                          "false_triggers": s.get("false_triggers"),
-                         "false_trigger_alerts": s.get("false_trigger_alerts")})
-        lines += ["## 5. Fall classifier stand-ins", "",
-                  "Each stand-in changes the ideal one in one way. False triggers land on the home's "
-                  "own impact/household sounds.", "", _table(rows, list(rows[0]) if rows else []), ""]
+                         "false_trigger_alerts": s.get("false_trigger_alerts"),
+                         **{k2: v for k2, v in _classifier_columns(s).items() if v is not None}})
+        real = any(k.startswith("real_") for k in scenarios)
+        lines += ["## 5. Fall classifier " + ("thresholds" if real else "stand-ins"), "",
+                  ("`real_<t>`: the real classifier notifying at threshold t (planted falls and planted "
+                   "test days; `untouched_*`: the same on the untouched test days). `ideal`: the stand-in, "
+                   "for reference." if real else
+                   "Each stand-in changes the ideal one in one way. False triggers land on the home's "
+                   "own impact/household sounds."), "",
+                  _table(rows, list(dict.fromkeys(k2 for r in rows for k2 in r))), ""]
     if "tuning" in results:
         cols = ["variant", "alerts_per_day", "alerts_by_kind", "evidence_per_day", "fall_silence_rate",
                 "fall_silence_s_median", "fall_silence_s_max", "fall_inactivity_rate",
                 "fall_inactivity_s_median", "fall_silence_rate_no_classifier", "water_rate", "water_s_median",
-                "burst_rate", "burst_s_median", "stray_alerts_per_day"]
-        lines += ["## 6. Threshold tuning (each variant recalibrated, ideal classifier stand-in)", "",
+                "burst_rate", "burst_s_median", "stray_alerts_per_day", "notified_rate", "notified_s_max",
+                "untouched_alerts_per_day", "false_triggers_per_day", "false_trigger_alerts"]
+        cols = [c for c in cols if any(r.get(c) is not None for r in results["tuning"])]
+        who = "real fall classifier" if "fall_classifier" in results["data"] else "ideal classifier stand-in"
+        lines += [f"## 6. Threshold tuning (each variant recalibrated, {who})", "",
                   _table(results["tuning"], cols), ""]
     return "\n".join(lines)
 
 
+def _trigger_section(u: dict[str, Any], info: dict[str, Any]) -> list[str]:
+    lines = [f"### Real fall classifier on the untouched test days (threshold {info.get('threshold')})", "",
+             f"{u['false_triggers']} false triggers ({u['false_triggers_per_day']}/day), "
+             f"{u['false_trigger_alerts']} became alerts. With the classifier connected: "
+             f"{u['alerts_per_day']} alerts/day ({json.dumps(u['alerts_by_kind'])}).", ""]
+    if u["triggers"]:
+        lines += [_table(u["triggers"], ["local_time", "score", "top_class", "categories", "level_dbfs",
+                                         "became_alert"]), ""]
+    return lines
+
+
 def _scenario_tables(b: dict[str, Any], title: str) -> list[str]:
     lines = []
-    for key in SCENARIOS:
-        s = b.get(key)
-        if not isinstance(s, dict):
+    for key, s in b.items():
+        if not isinstance(s, dict) or "stray_alerts_per_day" not in s:
             continue
         rows = [{"planted:finding": k, **v} for k, v in s.items() if isinstance(v, dict) and "planted" in v]
         lines += [f"### {title}, {key.replace('_', ' ')}", "",
@@ -591,8 +703,21 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--mlflow", action="store_true", help="also log metrics to MLflow")
     p.add_argument("--timezone", default="UTC", help="Local timezone for routines, e.g. Europe/Brussels")
+    p.add_argument("--fall-model", type=Path,
+                   help="exported fall_classifier.tflite (its .json beside it): the real classifier "
+                        "notifies falls next to the stand-ins")
+    p.add_argument("--fall-thresholds", nargs="+", type=float, default=[0.5, 0.8, 0.9],
+                   help="with --fall-model, --parts classifier: thresholds to try besides the model's")
+    p.add_argument("--safe-wavs", type=Path,
+                   help="SAFE WAV folder --falls/--non-falls were exported from (gives each clip's fold)")
+    p.add_argument("--safe-folds", nargs="+", type=int,
+                   help="with --safe-wavs: keep only these SAFE folds, e.g. 9 10 (the classifier's test set)")
+    p.add_argument("--variants", nargs="+", choices=[name for name, _ in TUNING_VARIANTS],
+                   help="--parts tuning: run only these variants (default all)")
     p.add_argument("--out", type=Path, required=True)
     args = p.parse_args(argv)
+    if bool(args.safe_wavs) != bool(args.safe_folds):
+        p.error("--safe-wavs and --safe-folds go together")
 
     non_falls = None
     if args.synthetic:
@@ -604,6 +729,17 @@ def main(argv: list[str] | None = None) -> int:
         test = concat([FrameStream.load(f) for f in args.test])
         falls = FrameStream.load(args.falls) if args.falls else None
         non_falls = FrameStream.load(args.non_falls) if args.non_falls else None
+    info: dict[str, Any] = {}
+    if args.safe_folds:
+        folds = tuple(args.safe_folds)
+        falls = select_folds(falls, args.safe_wavs, "-01", folds) if falls is not None else None
+        non_falls = select_folds(non_falls, args.safe_wavs, "-02", folds) if non_falls is not None else None
+        info["safe_folds"] = list(folds)
+    classifier = None
+    if args.fall_model:
+        scores, threshold, model_info = fall_model.load(args.fall_model)
+        classifier = RealClassifier(scores, threshold)
+        info["fall_classifier"] = model_info
     if args.decimate > 1:
         calib, test = _every(calib, args.decimate), _every(test, args.decimate)
     for name in args.contexts or []:
@@ -614,7 +750,9 @@ def main(argv: list[str] | None = None) -> int:
     results = evaluate(calib, test, falls, non_falls=non_falls, cfg=AnomalyConfig(timezone=args.timezone),
                        contexts=tuple(args.contexts) if args.contexts else None,
                        quantile=args.quantile, per_kind=args.per_kind, parts=tuple(args.parts),
-                       seed=args.seed, plant_seeds=tuple(args.plant_seeds) if args.plant_seeds else None)
+                       seed=args.seed, plant_seeds=tuple(args.plant_seeds) if args.plant_seeds else None,
+                       fall_classifier=classifier, fall_thresholds=tuple(args.fall_thresholds),
+                       variants=args.variants, info=info)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "results.json").write_text(json.dumps(results, indent=2))
     (args.out / "report.md").write_text(report(results, args.synthetic))

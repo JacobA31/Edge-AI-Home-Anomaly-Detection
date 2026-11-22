@@ -1,0 +1,108 @@
+{
+  "data": {
+    "calibration_hours": 72.0,
+    "test_hours": 57.56,
+    "fall_frames": 546,
+    "non_fall_frames": 0,
+    "embedding_dim": 1024,
+    "class_scores": true,
+    "levels": true,
+    "timezone": "Europe/Brussels",
+    "contexts": [
+      "category"
+    ],
+    "plant_seeds": [
+      0,
+      1,
+      2
+    ],
+    "safe_folds": [
+      9,
+      10
+    ],
+    "fall_classifier": {
+      "model": "models/fall_classifier.tflite",
+      "model_sha256": "84837ba61875db2ad8dd1490b1bfc5e9864e4bc851e2fc76856aa51e05399637",
+      "yamnet_sha256": "3462e073dd7dd359afdbbefe273fed1cd29df2ca705f72a2af80d624095dc4c9",
+      "threshold": 0.66
+    }
+  },
+  "tuning": [
+    {
+      "variant": "defaults",
+      "overrides": {},
+      "alerts_per_day": 0.0,
+      "evidence_per_day": 5.42,
+      "alerts_by_kind": {},
+      "fall_silence_rate": 0.933,
+      "fall_silence_s_median": 7.9,
+      "fall_silence_s_max": 8.2,
+      "fall_inactivity_rate": 0.933,
+      "fall_inactivity_s_median": 124.8,
+      "fall_silence_rate_no_classifier": 0.267,
+      "water_rate": 1.0,
+      "water_s_median": 119.6,
+      "burst_rate": 1.0,
+      "burst_s_median": 100.2,
+      "stray_alerts_per_day": 1.39,
+      "notified_rate": 0.933,
+      "notified_s_median": 1.8,
+      "notified_s_max": 2.8,
+      "untouched_alerts_per_day": 1.67,
+      "false_triggers_per_day": 51.29,
+      "false_trigger_alerts": 4
+    },
+    {
+      "variant": "strong_max_60s",
+      "overrides": {
+        "post_impact.strong_max_seconds": 60.0
+      },
+      "alerts_per_day": 0.0,
+      "evidence_per_day": 5.42,
+      "alerts_by_kind": {},
+      "fall_silence_rate": 0.933,
+      "fall_silence_s_median": 7.9,
+      "fall_silence_s_max": 8.2,
+      "fall_inactivity_rate": 0.933,
+      "fall_inactivity_s_median": 64.6,
+      "fall_silence_rate_no_classifier": 0.267,
+      "water_rate": 1.0,
+      "water_s_median": 119.6,
+      "burst_rate": 1.0,
+      "burst_s_median": 100.2,
+      "stray_alerts_per_day": 3.2,
+      "notified_rate": 0.933,
+      "notified_s_median": 1.8,
+      "notified_s_max": 2.8,
+      "untouched_alerts_per_day": 3.34,
+      "false_triggers_per_day": 51.29,
+      "false_trigger_alerts": 8
+    },
+    {
+      "variant": "strong_max_300s",
+      "overrides": {
+        "post_impact.strong_max_seconds": 300.0
+      },
+      "alerts_per_day": 0.0,
+      "evidence_per_day": 5.42,
+      "alerts_by_kind": {},
+      "fall_silence_rate": 0.933,
+      "fall_silence_s_median": 7.9,
+      "fall_silence_s_max": 8.2,
+      "fall_inactivity_rate": 0.933,
+      "fall_inactivity_s_median": 304.7,
+      "fall_silence_rate_no_classifier": 0.267,
+      "water_rate": 1.0,
+      "water_s_median": 119.6,
+      "burst_rate": 1.0,
+      "burst_s_median": 100.2,
+      "stray_alerts_per_day": 0.0,
+      "notified_rate": 0.933,
+      "notified_s_median": 1.8,
+      "notified_s_max": 2.8,
+      "untouched_alerts_per_day": 0.0,
+      "false_triggers_per_day": 51.29,
+      "false_trigger_alerts": 0
+    }
+  ]
+}
