@@ -7,6 +7,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from db.connection import get_connection
+from db.notifications import enqueue_alert
 from device_status import monitoring_report
 from event_cursor import encode_cursor
 
@@ -39,6 +40,7 @@ def save_event(event: dict) -> bool:
         ).fetchone()
         if row is not None:
             received_at = row[0]
+            enqueue_alert(conn, event)
             conn.execute(
                 "UPDATE devices SET last_seen_at = GREATEST(last_seen_at, %s) WHERE device_id = %s",
                 (received_at, event["device_id"]),

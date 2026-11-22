@@ -10,6 +10,7 @@ from api.auth import bp as auth_bp
 from api.devices import bp as devices_bp
 from api.events import bp as events_bp
 from api.health import bp as health_bp
+from notification_worker import bp as notifications_bp
 
 app = func.FunctionApp()
 
@@ -18,3 +19,4 @@ app.register_functions(events_bp)
 app.register_functions(admin_bp)
 app.register_functions(auth_bp)
 app.register_functions(devices_bp)
+app.register_functions(notifications_bp)
