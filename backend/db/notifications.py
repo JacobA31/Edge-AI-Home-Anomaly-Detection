@@ -59,8 +59,8 @@ def _finish(conn, job: dict, status: str, error: str | None = None, message=None
     delay = min(300, 10 * 2 ** (job["attempt_count"] - 1))
     conn.execute(
         "UPDATE email_notifications SET status = %s, claim_token = NULL, last_error = %s, "
-        "next_attempt_at = now() + %s * interval '1 second', "
-        "finished_at = CASE WHEN %s = 'pending' THEN NULL ELSE now() END, "
+        "next_attempt_at = clock_timestamp() + %s * interval '1 second', "
+        "finished_at = CASE WHEN %s = 'pending' THEN NULL ELSE clock_timestamp() END, "
         "preview_subject = %s, preview_body = %s "
         "WHERE notification_id = %s AND claim_token = %s",
         (status, error, delay, status,

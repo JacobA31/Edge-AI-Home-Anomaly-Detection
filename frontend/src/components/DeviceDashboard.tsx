@@ -4,6 +4,7 @@ import { ApiError, fetchAlerts } from "../api/client";
 import { fetchDevices } from "../api/devices";
 import type { Device } from "../api/devices";
 import type { RecordedEvent } from "../types/event";
+import AlertTimingProbe from "../dev/AlertTimingProbe";
 import { LatestAlert, RecentAlerts } from "./Alerts";
 import DevicePanel from "./DevicePanel";
 
@@ -48,6 +49,7 @@ export default function DeviceDashboard({ onSignedOut }: { onSignedOut: (message
   return (
     <>
       {loading ? <p role="status">Loading your devices…</p> : <>
+        {import.meta.env.DEV && <AlertTimingProbe events={events} />}
         {devices.length > 0 && <LatestAlert event={events[0]} />}
         <DevicePanel devices={devices} onChanged={refresh} onSignedOut={onSignedOut} />
         {devices.length > 0 && <RecentAlerts events={events} />}
