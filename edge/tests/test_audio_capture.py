@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from e3_edge.audio import capture
+from e3_edge.audio.windowing import WindowAssembler
 
 
 @pytest.fixture
@@ -167,6 +168,38 @@ def test_variable_short_blocks_preserve_sample_counts(backend):
         assert len(first.samples) == 1 and second.sample_index == 1
         assert not second.discontinuity
         np.testing.assert_array_equal(second.samples, samples(1, count=3))
+
+
+def test_live_capture_blocks_assemble_into_complete_overlapping_windows(backend):
+    assembler = WindowAssembler()
+    recording = np.linspace(-0.5, 0.5, 15600 + 7680, dtype=np.float32)
+    windows = []
+    with capture.MicrophoneCapture() as microphone:
+        stream = backend.streams[0]
+        for index in range(0, len(recording), 1024):
+            stream.emit(recording[index:index + 1024])
+            windows.extend(assembler.push(microphone.read()))
+    assert len(windows) == 2
+    for i, window in enumerate(windows):
+        np.testing.assert_array_equal(window.samples, recording[i * 7680:i * 7680 + 15600])
+        assert window.start_time == backend.utc + i * 7680 / 16000
+        assert window.discontinuity == (i == 0)
+
+
+def test_capture_overflow_cannot_join_audio_across_the_dropped_block(backend):
+    assembler = WindowAssembler()
+    with capture.MicrophoneCapture(block_size=8000, buffer_blocks=2) as microphone:
+        stream = backend.streams[0]
+        stream.emit(np.full(5000, -0.5, dtype=np.float32))
+        assert assembler.push(microphone.read()) == []
+        for _ in range(3):
+            stream.emit(np.full(8000, 0.25, dtype=np.float32))
+        assert microphone.dropped_samples == 8000
+        assert assembler.push(microphone.read()) == []
+        window, = assembler.push(microphone.read())
+        np.testing.assert_array_equal(window.samples, np.full(15600, 0.25, dtype=np.float32))
+        assert window.sample_index == 13000 and window.discontinuity
+        assert window.start_time == backend.utc + 13000 / 16000
 
 
 @pytest.mark.parametrize("adc", [float("nan"), float("inf"), -float("inf"), 99.0, 100.0])
