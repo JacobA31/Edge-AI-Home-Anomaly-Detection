@@ -11,7 +11,9 @@ from datetime import datetime
 import azure.functions as func
 from psycopg import Error
 
+from db.accounts import get_session_account
 from db.events import get_events, save_event
+from security import session_token
 from validation import EventValidationError, validate_event
 
 bp = func.Blueprint()
@@ -46,7 +48,14 @@ def post_event(req: func.HttpRequest) -> func.HttpResponse:
 
 @bp.route(route="events", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
 def list_events(req: func.HttpRequest) -> func.HttpResponse:
-    # TODO: protect this endpoint before real data goes in (see docs/SETUP.md, "Security")
+    try:
+        user = get_session_account(session_token(req))
+    except (Error, RuntimeError):
+        logging.exception("Could not check dashboard session")
+        return _json({"error": "account service unavailable; try again later"}, 503)
+    if user is None:
+        return _json({"error": "please log in"}, 401)
+    # Device memberships and per-device permissions are the next feature.
     try:
         limit = int(req.params.get("limit", "50"))
     except ValueError:
@@ -76,4 +85,7 @@ def list_events(req: func.HttpRequest) -> func.HttpResponse:
 
 
 def _json(body: dict, status: int = 200) -> func.HttpResponse:
-    return func.HttpResponse(json.dumps(body), status_code=status, mimetype="application/json")
+    return func.HttpResponse(
+        json.dumps(body), status_code=status, mimetype="application/json",
+        headers={"Cache-Control": "no-store"},
+    )

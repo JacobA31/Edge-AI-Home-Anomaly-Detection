@@ -3,6 +3,7 @@
   "Values": {
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "AUTH_ALLOWED_ORIGINS": "http://localhost:5173",
     "DATABASE_URL": "postgresql://e3admin:CHANGE_ME@localhost:5432/e3?sslmode=disable"
   },
   "Host": {
