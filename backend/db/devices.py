@@ -26,17 +26,20 @@ def _device_lock(conn, device_id: str) -> None:
         raise DeviceError("device is unavailable or you do not have access", 403)
 
 
-def _require_manager(conn, device_id: str, account_id: str) -> None:
+def require_manager(conn, device_id: str, account_id: str) -> None:
     _device_lock(conn, device_id)
     row = conn.execute(
         "SELECT role FROM device_memberships WHERE device_id = %s AND account_id = %s",
         (device_id, account_id),
     ).fetchone()
     if row is None or row[0] != "trusted_caregiver":
-        raise DeviceError("only the trusted caregiver can manage access", 403)
+        raise DeviceError("only the trusted caregiver can manage this device", 403)
 
 
 def list_devices(account_id: str) -> list[dict]:
+    # Import here: command authorization reuses the device membership helpers.
+    from db.device_commands import latest_commands
+
     timeout = offline_after_seconds()
     with get_connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
         cursor.execute(
@@ -46,6 +49,14 @@ def list_devices(account_id: str) -> list[dict]:
             "WHERE m.account_id = %s ORDER BY d.device_id", (account_id,),
         )
         rows = cursor.fetchall()
+        commands = latest_commands(conn, [row["device_id"] for row in rows])
+        configured = {row[0] for row in conn.execute(
+            "SELECT device_id FROM device_control_credentials WHERE device_id = ANY(%s)",
+            ([row["device_id"] for row in rows],),
+        ).fetchall()}
+        for row in rows:
+            row["latest_command"] = commands.get(row["device_id"])
+            row["controls_configured"] = row["device_id"] in configured
     now = datetime.now(UTC)
     return [add_device_status(row, now, timeout) for row in rows]
 
@@ -101,7 +112,7 @@ def claim_device(account_id: str, code: str) -> str:
 
 def get_access(device_id: str, account_id: str) -> dict:
     with get_connection() as conn:
-        _require_manager(conn, device_id, account_id)
+        require_manager(conn, device_id, account_id)
         with conn.cursor(row_factory=dict_row) as cursor:
             cursor.execute(
                 "SELECT a.account_id, a.email, a.display_name, m.role FROM device_memberships m "
@@ -125,7 +136,7 @@ def get_access(device_id: str, account_id: str) -> dict:
 def invite_caregiver(device_id: str, account_id: str, email: str) -> str:
     code = secrets.token_urlsafe(32)
     with get_connection() as conn:
-        _require_manager(conn, device_id, account_id)
+        require_manager(conn, device_id, account_id)
         if conn.execute(
             "SELECT 1 FROM device_memberships m JOIN accounts a ON a.account_id = m.account_id "
             "WHERE m.device_id = %s AND a.email = %s", (device_id, email),
@@ -169,7 +180,7 @@ def accept_invitation(account_id: str, email: str, code: str) -> str:
 
 def remove_caregiver(device_id: str, manager_id: str, account_id: str) -> None:
     with get_connection() as conn:
-        _require_manager(conn, device_id, manager_id)
+        require_manager(conn, device_id, manager_id)
         if manager_id == account_id:
             raise DeviceError("the trusted caregiver cannot remove their own access", 409)
         row = conn.execute(
@@ -187,7 +198,7 @@ def remove_caregiver(device_id: str, manager_id: str, account_id: str) -> None:
 
 def revoke_invitation(device_id: str, account_id: str, invitation_id: str) -> None:
     with get_connection() as conn:
-        _require_manager(conn, device_id, account_id)
+        require_manager(conn, device_id, account_id)
         row = conn.execute(
             "DELETE FROM device_invitations WHERE device_id = %s AND invitation_id = %s "
             "RETURNING invitation_id", (device_id, invitation_id),

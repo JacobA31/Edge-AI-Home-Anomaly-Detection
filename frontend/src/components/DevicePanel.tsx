@@ -5,6 +5,7 @@ import { ApiError } from "../api/client";
 import { acceptInvitation, claimDevice, fetchAccess, inviteCaregiver,
   removeCaregiver, revokeInvitation } from "../api/devices";
 import type { Device, DeviceAccess } from "../api/devices";
+import DeviceControls from "./DeviceControls";
 import DeviceStatus from "./DeviceStatus";
 
 interface Props {
@@ -53,6 +54,7 @@ export default function DevicePanel({ devices, onChanged, onSignedOut }: Props) 
           <DeviceStatus device={device} />
           <p>{device.role === "trusted_caregiver" ? "Trusted caregiver — you manage access."
             : "Read-only caregiver — you can view events and device information."}</p>
+          <DeviceControls device={device} onChanged={onChanged} onSignedOut={onSignedOut} />
           {device.role === "trusted_caregiver" && (
             <>
               <button className="secondary" onClick={() =>

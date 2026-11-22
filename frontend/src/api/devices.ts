@@ -1,5 +1,15 @@
 import { apiRequest } from "./client";
 
+export interface DeviceCommand {
+  command_id: string;
+  action: "mute" | "resume";
+  status: "pending" | "delivered" | "completed" | "failed" | "expired";
+  requested_at: string;
+  expires_at: string;
+  delivered_at: string | null;
+  finished_at: string | null;
+}
+
 export interface Device {
   device_id: string;
   room: string;
@@ -9,6 +19,8 @@ export interface Device {
   monitoring_state: "active" | "muted" | "unknown";
   monitoring_updated_at: string | null;
   offline_after_seconds: number;
+  controls_configured: boolean;
+  latest_command: DeviceCommand | null;
 }
 
 export interface DeviceAccess {
@@ -17,6 +29,12 @@ export interface DeviceAccess {
 }
 
 const devicePath = (deviceId: string) => `/devices/${encodeURIComponent(deviceId)}`;
+
+export async function requestDeviceCommand(deviceId: string, action: "mute" | "resume"): Promise<DeviceCommand> {
+  return (await apiRequest<{ command: DeviceCommand }>(`${devicePath(deviceId)}/commands`, {
+    method: "POST", body: JSON.stringify({ action }),
+  })).command;
+}
 
 export async function fetchDevices(): Promise<Device[]> {
   return (await apiRequest<{ devices: Device[] }>("/devices")).devices;

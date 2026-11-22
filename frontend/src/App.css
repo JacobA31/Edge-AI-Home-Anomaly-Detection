@@ -109,3 +109,13 @@ summary { cursor: pointer; font-weight: 600; }
   background: white; border-color: transparent; border-radius: 6px; padding: 0.6rem; overflow-wrap: anywhere; }
 .device-filter-option:hover { background: #f0f4f8; }
 .device-filter-option[aria-pressed="true"] { background: #e7f0f6; border-color: #a9c2d4; font-weight: 650; }
+.device-controls {
+  margin-block: 1rem;
+  padding-block: .75rem;
+  border-block: 1px solid #e2e8f0;
+}
+
+.device-controls h4 { margin: 0 0 .5rem; }
+.device-control-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.device-command-status { line-height: 1.5; }
+
