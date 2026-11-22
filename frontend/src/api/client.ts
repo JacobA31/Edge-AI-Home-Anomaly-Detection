@@ -24,3 +24,15 @@ export async function fetchEvents(): Promise<E3Event[]> {
   const body = await apiRequest<{ events: E3Event[] }>("/events");
   return body.events;
 }
+
+export interface AlertPage {
+  events: E3Event[];
+  next_cursor: string | null;
+}
+
+export async function fetchAlerts(limit: number, cursor?: string, deviceId?: string): Promise<AlertPage> {
+  const params = new URLSearchParams({ alerts_only: "true", limit: String(limit) });
+  if (cursor) params.set("cursor", cursor);
+  if (deviceId) params.set("device_id", deviceId);
+  return apiRequest<AlertPage>(`/events?${params}`);
+}

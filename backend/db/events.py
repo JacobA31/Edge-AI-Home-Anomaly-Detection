@@ -1,11 +1,13 @@
 """Store Pi events and retrieve recent event history."""
 
 from datetime import UTC, datetime
+from uuid import UUID
 
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from db.connection import get_connection
+from event_cursor import encode_cursor
 
 
 def save_event(event: dict) -> bool:
@@ -38,8 +40,9 @@ def save_event(event: dict) -> bool:
 
 
 def get_events(account_id: str, limit: int, since: datetime | None = None,
-               device_id: str | None = None) -> list[dict]:
-    """Read only this account's device events, checking membership in the query itself."""
+               device_id: str | None = None, alerts_only: bool = False,
+               cursor: tuple[datetime, datetime, UUID] | None = None) -> dict:
+    """Read an authorized page; stable ordering prevents skips when newer events arrive."""
     conditions = ["EXISTS (SELECT 1 FROM device_memberships m "
                   "WHERE m.device_id = events.device_id AND m.account_id = %s)"]
     parameters: list = [account_id]
@@ -49,8 +52,14 @@ def get_events(account_id: str, limit: int, since: datetime | None = None,
     if device_id is not None:
         conditions.append("device_id = %s")
         parameters.append(device_id)
+    if alerts_only:
+        # Filter before limiting: routine status messages must not hide older alerts.
+        conditions.append("event_type IN ('fall', 'anomaly', 'inactivity')")
+    if cursor is not None:
+        conditions.append("(detected_at, received_at, event_id) < (%s, %s, %s)")
+        parameters.extend(cursor)
     where = " WHERE " + " AND ".join(conditions) if conditions else ""
-    parameters.append(limit)
+    parameters.append(limit + 1)
     with get_connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
         cursor.execute(
             "SELECT event_id, device_id, event_type, room, detected_at, elapsed_seconds, "
@@ -59,7 +68,9 @@ def get_events(account_id: str, limit: int, since: datetime | None = None,
             + " ORDER BY detected_at DESC, received_at DESC, event_id DESC LIMIT %s",
             parameters,
         )
-        events = cursor.fetchall()
+        rows = cursor.fetchall()
+    more = len(rows) > limit
+    events = rows[:limit]
     for event in events:
         event["event_id"] = str(event["event_id"])
         for field in ("detected_at", "received_at"):
@@ -67,4 +78,4 @@ def get_events(account_id: str, limit: int, since: datetime | None = None,
         for field in ("confidence", "details"):
             if event[field] is None:
                 del event[field]
-    return events
+    return {"events": events, "next_cursor": encode_cursor(events[-1]) if more else None}

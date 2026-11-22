@@ -13,6 +13,7 @@ from psycopg import Error
 
 from db.accounts import get_session_account
 from db.events import get_events, save_event
+from event_cursor import decode_cursor
 from security import session_token
 from validation import EventValidationError, validate_event
 
@@ -75,12 +76,25 @@ def list_events(req: func.HttpRequest) -> func.HttpResponse:
     if device_id is not None and not 1 <= len(device_id) <= 64:
         return _json({"error": "device_id must contain between 1 and 64 characters"}, 400)
 
+    alerts_only = req.params.get("alerts_only", "false")
+    if alerts_only not in {"true", "false"}:
+        return _json({"error": "alerts_only must be true or false"}, 400)
+    cursor = None
+    if "cursor" in req.params:
+        try:
+            cursor = decode_cursor(req.params["cursor"])
+        except ValueError as exc:
+            return _json({"error": str(exc)}, 400)
+
     try:
-        events = get_events(account_id=user["account_id"], limit=limit, since=since, device_id=device_id)
+        page = get_events(
+            account_id=user["account_id"], limit=limit, since=since, device_id=device_id,
+            alerts_only=alerts_only == "true", cursor=cursor,
+        )
     except (Error, RuntimeError):
         logging.exception("Could not retrieve events")
         return _json({"error": "events could not be loaded; retry later"}, 503)
-    return _json({"events": events})
+    return _json(page)
 
 
 def _json(body: dict, status: int = 200) -> func.HttpResponse:

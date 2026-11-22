@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { ApiError, fetchEvents } from "../api/client";
+import { ApiError, fetchAlerts } from "../api/client";
 import { fetchDevices } from "../api/devices";
 import type { Device } from "../api/devices";
 import type { E3Event } from "../types/event";
+import { LatestAlert, RecentAlerts } from "./Alerts";
 import DevicePanel from "./DevicePanel";
 
 export default function DeviceDashboard({ onSignedOut }: { onSignedOut: (message: string) => void }) {
@@ -19,9 +20,11 @@ export default function DeviceDashboard({ onSignedOut }: { onSignedOut: (message
     let timer: ReturnType<typeof setTimeout>;
     async function load() {
       try {
-        const [linked, saved] = await Promise.all([fetchDevices(), fetchEvents()]);
+        const [linked, firstPage] = await Promise.all([
+          fetchDevices(), fetchAlerts(5),
+        ]);
         if (cancelled) return;
-        setDevices(linked); setEvents(saved); setError("");
+        setDevices(linked); setEvents(firstPage.events); setError("");
       } catch (err) {
         if (cancelled) return;
         // Clear cached household information if an access check fails.
@@ -37,19 +40,17 @@ export default function DeviceDashboard({ onSignedOut }: { onSignedOut: (message
     return () => { cancelled = true; clearTimeout(timer); };
   }, [onSignedOut, revision]);
 
+  if (error) return <section role="alert">
+    <p className="error">Could not load your dashboard: {error}</p>
+    <button type="button" onClick={refresh}>Try again</button>
+  </section>;
+
   return (
     <>
-      {error && <p className="error" role="alert">{error}</p>}
       {loading ? <p role="status">Loading your devices…</p> : <>
+        {devices.length > 0 && <LatestAlert event={events[0]} />}
         <DevicePanel devices={devices} onChanged={refresh} onSignedOut={onSignedOut} />
-        {devices.length > 0 && <section aria-labelledby="event-history-title">
-          <h2 id="event-history-title">Event history</h2>
-          {events.length === 0 ? <p>No events yet.</p> : <ul className="event-list">
-            {events.map((event) => <li key={event.event_id}>
-              {new Date(event.detected_at).toLocaleString()} · {event.event_type} · {event.room}
-            </li>)}
-          </ul>}
-        </section>}
+        {devices.length > 0 && <RecentAlerts events={events} />}
       </>}
     </>
   );
