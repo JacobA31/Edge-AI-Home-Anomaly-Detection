@@ -55,7 +55,6 @@ def list_events(req: func.HttpRequest) -> func.HttpResponse:
         return _json({"error": "account service unavailable; try again later"}, 503)
     if user is None:
         return _json({"error": "please log in"}, 401)
-    # Device memberships and per-device permissions are the next feature.
     try:
         limit = int(req.params.get("limit", "50"))
     except ValueError:
@@ -77,7 +76,7 @@ def list_events(req: func.HttpRequest) -> func.HttpResponse:
         return _json({"error": "device_id must contain between 1 and 64 characters"}, 400)
 
     try:
-        events = get_events(limit=limit, since=since, device_id=device_id)
+        events = get_events(account_id=user["account_id"], limit=limit, since=since, device_id=device_id)
     except (Error, RuntimeError):
         logging.exception("Could not retrieve events")
         return _json({"error": "events could not be loaded; retry later"}, 503)

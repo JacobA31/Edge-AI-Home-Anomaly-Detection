@@ -2,13 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 
 import { currentAccount, logout } from "./api/auth";
 import type { Account } from "./api/auth";
-import { ApiError, fetchEvents } from "./api/client";
+import { ApiError } from "./api/client";
 import AccountPanel from "./components/AccountPanel";
 import AuthForm from "./components/AuthForm";
-import type { E3Event } from "./types/event";
+import DeviceDashboard from "./components/DeviceDashboard";
 import "./App.css";
-
-const POLL_MS = 5000;
 
 export default function App() {
   const [user, setUser] = useState<Account | null>(null);
@@ -65,51 +63,9 @@ export default function App() {
           {showAccount ? <AccountPanel key={user.account_id} user={user} onUpdate={(updated) => {
             setUser((previous) => previous?.account_id === updated.account_id ? updated : previous);
           }}
-            onSignedOut={signedOut} /> : <EventHistory onSignedOut={signedOut} />}
+            onSignedOut={signedOut} /> : <DeviceDashboard onSignedOut={signedOut} />}
         </>
       )}
     </main>
-  );
-}
-
-function EventHistory({ onSignedOut }: { onSignedOut: (message: string) => void }) {
-  const [events, setEvents] = useState<E3Event[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = () =>
-      fetchEvents()
-        .then((e) => !cancelled && (setEvents(e), setError(null)))
-        .catch((err: Error) => {
-          if (cancelled) return;
-          if (err instanceof ApiError && err.status === 401) {
-            onSignedOut("Your session ended. Please log in again.");
-          } else { setError(err.message); }
-        });
-    load();
-    const id = setInterval(load, POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [onSignedOut]);
-
-  return (
-    <section aria-label="Event history">
-      {error && <p role="alert">Can't reach the backend: {error}</p>}
-      {/* TODO(member5): alert banner + sound for new falls, device status, acknowledge button */}
-      {events.length === 0 ? (
-        <p>No events yet.</p>
-      ) : (
-        <ul className="event-list">
-          {events.map((e) => (
-            <li key={e.event_id}>
-              {new Date(e.detected_at).toLocaleString()} · {e.event_type} · {e.room}
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
   );
 }

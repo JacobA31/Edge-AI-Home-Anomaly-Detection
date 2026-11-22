@@ -7,6 +7,7 @@ import azure.functions as func
 
 from api.admin import bp as admin_bp
 from api.auth import bp as auth_bp
+from api.devices import bp as devices_bp
 from api.events import bp as events_bp
 from api.health import bp as health_bp
 
@@ -16,3 +17,4 @@ app.register_functions(health_bp)
 app.register_functions(events_bp)
 app.register_functions(admin_bp)
 app.register_functions(auth_bp)
+app.register_functions(devices_bp)

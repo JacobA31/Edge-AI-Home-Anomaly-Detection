@@ -37,10 +37,12 @@ def save_event(event: dict) -> bool:
     return row is not None
 
 
-def get_events(limit: int, since: datetime | None = None, device_id: str | None = None) -> list[dict]:
-    """Read events newest detection first; since is an exclusive detection-time cutoff."""
-    conditions = []
-    parameters: list = []
+def get_events(account_id: str, limit: int, since: datetime | None = None,
+               device_id: str | None = None) -> list[dict]:
+    """Read only this account's device events, checking membership in the query itself."""
+    conditions = ["EXISTS (SELECT 1 FROM device_memberships m "
+                  "WHERE m.device_id = events.device_id AND m.account_id = %s)"]
+    parameters: list = [account_id]
     if since is not None:
         conditions.append("detected_at > %s")
         parameters.append(since)
