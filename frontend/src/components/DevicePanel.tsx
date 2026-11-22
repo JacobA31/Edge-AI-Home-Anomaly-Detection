@@ -5,6 +5,7 @@ import { ApiError } from "../api/client";
 import { acceptInvitation, claimDevice, fetchAccess, inviteCaregiver,
   removeCaregiver, revokeInvitation } from "../api/devices";
 import type { Device, DeviceAccess } from "../api/devices";
+import DeviceStatus from "./DeviceStatus";
 
 interface Props {
   devices: Device[];
@@ -44,10 +45,12 @@ export default function DevicePanel({ devices, onChanged, onSignedOut }: Props) 
       {message && <p role="status">{message}</p>}
       {error && <p className="error" role="alert">{error}</p>}
       {devices.length === 0 && <p>No devices linked yet. Link your Pi or accept a caregiver invitation to see events.</p>}
-      {devices.map((device) => (
+      {devices.length > 0 && <div className="device-list" role="region" aria-label="Linked device list" tabIndex={0}>
+        {devices.map((device) => (
         <article className="device-card" key={device.device_id}>
           <h3>{device.room}</h3>
           <p>{device.device_id}</p>
+          <DeviceStatus device={device} />
           <p>{device.role === "trusted_caregiver" ? "Trusted caregiver — you manage access."
             : "Read-only caregiver — you can view events and device information."}</p>
           {device.role === "trusted_caregiver" && (
@@ -61,7 +64,8 @@ export default function DevicePanel({ devices, onChanged, onSignedOut }: Props) 
             </>
           )}
         </article>
-      ))}
+        ))}
+      </div>}
       <details>
         <summary>Link a device as its first caregiver</summary>
         <p>Use the private, one-time linking code provided during device setup. A device name alone does not grant access.</p>

@@ -4,6 +4,11 @@ export interface Device {
   device_id: string;
   room: string;
   role: "trusted_caregiver" | "caregiver";
+  connection_status: "online" | "offline" | "never_seen";
+  last_seen_at: string | null;
+  monitoring_state: "active" | "muted" | "unknown";
+  monitoring_updated_at: string | null;
+  offline_after_seconds: number;
 }
 
 export interface DeviceAccess {

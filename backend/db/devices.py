@@ -1,12 +1,13 @@
 """Device membership, single-use setup codes, and read-only caregiver invitations."""
 
 import secrets
-from datetime import UTC
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from psycopg.rows import dict_row
 
 from db.connection import get_connection
+from device_status import add_device_status, offline_after_seconds
 from security import token_hash
 
 
@@ -36,13 +37,17 @@ def _require_manager(conn, device_id: str, account_id: str) -> None:
 
 
 def list_devices(account_id: str) -> list[dict]:
+    timeout = offline_after_seconds()
     with get_connection() as conn, conn.cursor(row_factory=dict_row) as cursor:
         cursor.execute(
-            "SELECT d.device_id, d.room, m.role FROM devices d "
+            "SELECT d.device_id, d.room, m.role, d.last_seen_at, d.monitoring_state, d.monitoring_updated_at "
+            "FROM devices d "
             "JOIN device_memberships m ON m.device_id = d.device_id "
             "WHERE m.account_id = %s ORDER BY d.device_id", (account_id,),
         )
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+    now = datetime.now(UTC)
+    return [add_device_status(row, now, timeout) for row in rows]
 
 
 def provision_device(device_id: str, room: str) -> str:

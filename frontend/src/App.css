@@ -30,8 +30,22 @@ a { color: #1c526f; }
 .button-link { display: inline-block; border: 1px solid #1c526f; border-radius: 5px;
   padding: 0.65rem 1rem; margin: 0.25rem 0; background: white; text-decoration: none; }
 .device-section { margin-bottom: 1.5rem; }
+.device-list { max-height: 42rem; overflow-y: auto; overscroll-behavior-y: contain;
+  scrollbar-gutter: stable; padding-inline-end: 0.5rem; }
 .device-card { border-top: 1px solid #d6dee6; padding: 1rem 0; overflow-wrap: anywhere; }
 .device-card h3 { margin: 0.25rem 0; }
+.device-status { margin: 1rem 0; }
+.device-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1rem 1.5rem; }
+.device-status-grid dt { font-size: 0.85rem; color: #46576a; }
+.device-status-grid dd { margin: 0.4rem 0 0; font-size: 0.95rem; }
+.status-badge { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.65rem;
+  border-radius: 999px; font-size: 0.85rem; font-weight: 650; background: #edf0f3; color: #46576a; }
+.status-dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.status-online, .status-active { background: #e4f3e9; color: #245b38; }
+.status-muted { background: #fff0d6; color: #795210; }
+.status-offline { background: #f8e9e7; color: #8a3530; }
+.device-status-note { font-size: 0.85rem; color: #46576a; line-height: 1.5; margin: 0.5rem 0; }
 details { border-top: 1px solid #d6dee6; padding: 1rem 0; }
 summary { cursor: pointer; font-weight: 600; }
 .access-settings { margin-top: 1rem; border-left: 3px solid #d6dee6; padding-left: 1rem; }
@@ -84,7 +98,8 @@ summary { cursor: pointer; font-weight: 600; }
   box-shadow: 0 8px 25px #182a3b1a; }
 .device-filter-menu label { font-size: 0.85rem; margin: 0 0 0.75rem; }
 .device-filter-menu input { font-size: 0.9rem; }
-.device-filter-options { max-height: 240px; overflow-y: auto; }
+.device-filter-options { max-height: 240px; overflow-y: auto; overscroll-behavior-y: contain;
+  scrollbar-gutter: stable; }
 .device-filter-option { display: block; width: 100%; text-align: left; margin: 0.2rem 0; color: #182a3b;
   background: white; border-color: transparent; border-radius: 6px; padding: 0.6rem; overflow-wrap: anywhere; }
 .device-filter-option:hover { background: #f0f4f8; }

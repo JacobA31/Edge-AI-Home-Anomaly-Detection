@@ -7,6 +7,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from db.connection import get_connection
+from device_status import monitoring_report
 from event_cursor import encode_cursor
 
 
@@ -24,7 +25,7 @@ def save_event(event: dict) -> bool:
             "INSERT INTO events "
             "(event_id, device_id, event_type, room, detected_at, elapsed_seconds, confidence, details) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) "
-            "ON CONFLICT (event_id) DO NOTHING RETURNING event_id",
+            "ON CONFLICT (event_id) DO NOTHING RETURNING received_at",
             (
                 event["event_id"],
                 event["device_id"],
@@ -36,6 +37,23 @@ def save_event(event: dict) -> bool:
                 Jsonb(event["details"]) if "details" in event else None,
             ),
         ).fetchone()
+        if row is not None:
+            received_at = row[0]
+            conn.execute(
+                "UPDATE devices SET last_seen_at = GREATEST(last_seen_at, %s) WHERE device_id = %s",
+                (received_at, event["device_id"]),
+            )
+            report = monitoring_report(event, received_at)
+            if report is not None:
+                state, reported_at = report
+                conn.execute(
+                    "UPDATE devices SET monitoring_state = %s, monitoring_updated_at = %s "
+                    "WHERE device_id = %s AND (monitoring_updated_at IS NULL OR monitoring_updated_at < %s "
+                    "OR (monitoring_updated_at = %s AND "
+                    "CASE %s WHEN 'muted' THEN 2 WHEN 'unknown' THEN 1 ELSE 0 END > "
+                    "CASE monitoring_state WHEN 'muted' THEN 2 WHEN 'unknown' THEN 1 ELSE 0 END))",
+                    (state, reported_at, event["device_id"], reported_at, reported_at, state),
+                )
     return row is not None
 
 
