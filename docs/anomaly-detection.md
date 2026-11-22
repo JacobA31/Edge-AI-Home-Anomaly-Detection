@@ -150,7 +150,7 @@ in the inference thread.
 | 6 | CLI `calibrate` / `replay` / `info` / `bench` (also runs on the Pi) | done, tested |
 | 7 | Offline harness: 8 methods, AUC/pAUC, planted anomalies, false alerts/day, calibration length, adaptation | done, tested on synthetic data |
 | 8 | SINS replay with real YAMNet frames, SAFE falls; choose `contexts` and tune thresholds | done: `contexts: category` kept (ADR 0002 accepted); `post_impact.short_seconds` 5 → 3, `impacts.min_count` 4 → 6 (below) |
-| 9 | Measure on the Pi 5: `bench`, 7-day soak, combined with YAMNet + fall model (NF5). Re-run the harness with the real fall classifier instead of the stand-ins: its candidate threshold, delay, misses and false triggers per day; re-check NF1 and `post_impact.strong_max_seconds` with them | **blocked**: needs hardware, the fall classifier and its outputs on SAFE/SINS |
+| 9 | Measure on the Pi 5: `bench`, 7-day soak, combined with YAMNet + fall model (NF5). Re-run the harness with the real fall classifier instead of the stand-ins: its candidate threshold, delay, misses and false triggers per day; re-check NF1 and `post_impact.strong_max_seconds` with them | offline half **done** (below): `strong_max_seconds` decision open. Pi half **blocked**: needs the Pi integration |
 | 10 | Wire into the main loop and the Event Manager | **blocked**: needs the frame source and the Event Manager |
 
 ### Results on real frames (SINS Node 6 + SAFE, task 8)
@@ -218,6 +218,60 @@ partly independent. SAFE was recorded with other microphones in other rooms; the
 shows this matters, so frame-level AUCs are not fall-detection results. The SINS clock timezone is
 unconfirmed, but UTC gave the same results.
 
+### Real fall classifier in the harness (task 9, offline half)
+
+Reports: [main split](../ml/reports/anomaly-sins-node6-fall-classifier/report.md),
+[second split](../ml/reports/anomaly-sins-node6-split2-fall-classifier/report.md),
+[`strong_max_seconds`](../ml/reports/anomaly-sins-node6-tuning-fall-classifier/report.md). The selected
+model (`fall-classifier-v1`, threshold 0.66) scores every frame through `FallClassifierRunner`, as on
+the Pi (`ml/src/anomaly/fall_model.py`). Only SAFE's test folds 09-10 are planted (91 falls; the
+classifier trained on 01-07), so the stand-in rows differ slightly from task 8. Scoring these frames
+(TF Hub YAMNet) reproduces the classifier's own validation and test results exactly.
+
+| Check | Main split | Second split |
+|---|---|---|
+| Planted falls notified (one notification per burst of frames ≥ 0.66) | 28/30, 1.8 s median, 2.8 s max | 28/30, 2.0 s median, 2.8 s max |
+| ...silence evidence | 28/30, 7.9 s median, 8.2 s max | 28/30, 7.9 s median, **11.1 s max** |
+| ...inactivity alert | 28/30 at ~125 s | 28/30 at ~125 s |
+| Ideal stand-in, same test-fold falls: silence evidence max | **10.6 s** | **11.1 s** |
+| False triggers on untouched test days | **51/day** | **56/day** |
+| ...that became alerts (`post_impact_inactivity`) | 4 (1.67/day) | 5 (1.47/day) |
+| Untouched-day alerts without → with the classifier | 0 → 1.67/day | 0 → 1.47/day |
+
+**False triggers.** The classifier fires on everyday SINS audio about 50 times a day, against 3% of
+SAFE's non-fall clips. 63% of the triggers are on frames where YAMNet hears no category at all
+(top classes "Inside, small room", "Music", "Percussion", "Thunderstorm"); only 3% are impacts.
+Most are dismissed because someone moves afterwards; those followed by 2 min of quiet become
+inactivity alerts. A higher threshold doesn't separate them (main split, untouched days):
+
+| Threshold | 0.5 | **0.66** | 0.8 | 0.9 | 0.95 | 0.99 |
+|---|---|---|---|---|---|---|
+| Planted falls notified | 97% | 93% | 83% | 80% | 63% | 37% |
+| False triggers / day | 73 | 51 | 37 | 29 | 23 | 11 |
+| Alerts / day | 2.5 | 1.67 | 2.08 | 1.25 | 0.83 | 0.42 |
+
+**NF1.** The classifier's notification (≤ 2.8 s) is well inside 10 s. The silence evidence after it
+is not always: 10.6–11.1 s for the slowest test-fold clips, with the ideal stand-in as well, so it is
+the clips' tails (sound continuing after the impact), not the classifier. Task 8's 9.4 s came from
+all folds.
+
+**`post_impact.strong_max_seconds`** (main split, recalibrated per variant):
+
+| Value | Inactivity alert after a fall | False alerts/day from false triggers (untouched days) |
+|---|---|---|
+| 60 | ~65 s | 3.34 |
+| **120** (current) | ~125 s | 1.67 |
+| 300 | ~305 s | 0 |
+
+Open: this is a product trade-off (time to a fall alert against false alerts per day), not a tuning
+rule, so it stays at 120 until the team decides. The SINS home is often occupied, so a person living
+alone and still would turn more false triggers into alerts. Better: fewer false triggers, by
+training the classifier with home audio (e.g. SINS) as non-falls.
+
+**For task 10.** Notify once per burst of frames at or above the threshold, not per frame: a
+notification more than `merge_seconds` (2 s) after the watch started restarts it, and one SAFE fall
+can score above the threshold across 2.4 s.
+
 ### Results on synthetic frames (laptop; not accuracy claims)
 
 Measured on an Apple-silicon laptop with Python 3.11, before the SINS tuning (5 s silence check,
@@ -265,7 +319,7 @@ parts of 30 Jan and 5 Feb. Commands: ml/README.md. `python -m src.anomaly.evalua
 |---|---|---|
 | Fareed (preprocessing/YAMNet) | **Done:** YAMNet frames for SINS and SAFE from `ml/src/export_frames.py` (0.96 s windows, 0.48 s hop, scores and levels); SINS Node 6 and SAFE exported, see ml/data/README.md | — |
 | Fareed / anyone | The SINS recording clock's timezone (assumed Europe/Brussels, not confirmed) | Time-of-day periods use local time; UTC gave identical SINS results, so this is low priority |
-| Yannis (fall classifier) | A fall-candidate confidence per frame and the threshold at which it counts; notification within ~5 s of the fall's start; its recall and false triggers per day on SAFE/SINS | `notify_fall_candidate()` starts the post-fall silence watch; strong triggers use the 2 min limit. The numbers replace the stand-ins in task 9 |
+| Yannis (fall classifier) | **Done:** model, threshold 0.66 and reports (`fall-classifier-v1`). **New:** fewer false triggers on home audio (~50/day on SINS, task 9), e.g. SINS frames as non-falls in training | Each false trigger followed by quiet becomes an inactivity alert (1.5–1.7/day on SINS) |
 | Matthew (edge integration) | A frame source in the main loop (thread layout), mute button events, one `mic_id` per microphone | `AnomalyService.process()` per frame; `pause()` on mute |
 | Samy / whoever owns the Event Manager | Who owns the FR7 fusion (Table 1.4 assigns "event-handling" to Samy; the Gantt lists "Event Manager" without an owner). The risk formula and which findings alert | The module returns `level`, findings with `role` and `confidence`; it does not decide alerts |
 | Samy (backend/dashboard) | Show `details.kind` and `details.started_at`; delayed alerts already carry `detected_at` | Findings use only existing schema fields (`anomaly`, `inactivity`) |
@@ -278,8 +332,8 @@ parts of 30 Jan and 5 Feb. Commands: ml/README.md. `python -m src.anomaly.evalua
   first check, not a measure of accuracy in other homes.
 * Without the fall classifier, few falls start the post-impact watch, because YAMNet seldom calls a
   fall an impact (13–20% of planted SAFE falls).
-* Fall results use a stand-in for the classifier, so they show what the module does with a
-  classifier of that quality, not what the system does (task 9).
+* Fall results with the real classifier use SAFE falls planted into SINS, recorded with other
+  microphones in other rooms; the classifier's threshold was chosen after seeing SAFE's test folds.
 * Category detection inherits YAMNet's mistakes. The impact on/off levels were checked on SINS;
   the other categories' levels were not tuned.
 * Visitors and changed routines show up as anomalies (1.6.3); adaptation is off by default.

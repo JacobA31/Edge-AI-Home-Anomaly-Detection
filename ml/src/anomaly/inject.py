@@ -69,6 +69,11 @@ class Planter:
             self.quiet = np.flatnonzero(silent & (level <= np.quantile(level[silent], 0.3)))
         self.hop = float(np.median(np.diff(target.timestamps)))
         self.planted: list[Planted] = []
+        self._touched: list[np.ndarray] = []
+
+    def touched(self) -> np.ndarray:
+        """Rows of the target that planting overwrote."""
+        return np.unique(np.concatenate(self._touched)) if self._touched else np.array([], dtype=int)
 
     def available(self) -> dict[str, bool]:
         return {"fall": bool(self.fall_clips) and len(self.quiet) > 0, "prolonged_water": len(self.water) > 0,
@@ -80,6 +85,7 @@ class Planter:
 
     def _copy(self, rows: np.ndarray, source: FrameStream, donor_rows: np.ndarray) -> None:
         tgt = self.target
+        self._touched.append(np.asarray(rows, dtype=int))
         tgt.embeddings[rows] = source.embeddings[donor_rows]
         if source.scores is not None:
             full = source.full_scores()[donor_rows]

@@ -1,0 +1,1909 @@
+{
+  "data": {
+    "calibration_hours": 67.34,
+    "test_hours": 81.56,
+    "fall_frames": 546,
+    "non_fall_frames": 0,
+    "embedding_dim": 1024,
+    "class_scores": true,
+    "levels": true,
+    "timezone": "Europe/Brussels",
+    "contexts": [
+      "category"
+    ],
+    "plant_seeds": [
+      0,
+      1,
+      2
+    ],
+    "safe_folds": [
+      9,
+      10
+    ],
+    "fall_classifier": {
+      "model": "models/fall_classifier.tflite",
+      "model_sha256": "84837ba61875db2ad8dd1490b1bfc5e9864e4bc851e2fc76856aa51e05399637",
+      "yamnet_sha256": "3462e073dd7dd359afdbbefe273fed1cd29df2ca705f72a2af80d624095dc4c9",
+      "threshold": 0.66
+    }
+  },
+  "behavioural": {
+    "category": {
+      "test_days": 3.4,
+      "untouched_test_days": {
+        "alerts_per_day": 0.0,
+        "confident_alerts_per_day": 0.0,
+        "evidence_per_day": 5.0,
+        "alerts_by_kind": {}
+      },
+      "available": {
+        "fall": true,
+        "prolonged_water": true,
+        "impact_burst": true
+      },
+      "thresholds": {
+        "noise_floor_dbfs": -62.18308334350586,
+        "prolonged_seconds": 120.0,
+        "impact_counts": {
+          "night": 6,
+          "morning": 6,
+          "afternoon": 8,
+          "evening": 6
+        },
+        "impact_default": 8,
+        "post_impact_seconds": 1553.0424751996952,
+        "sources": {
+          "noise_floor": "learned from 5000 frames",
+          "prolonged": "learned from 75 water episodes",
+          "impacts": "learned from 807 windows",
+          "post_impact": "learned from 85 impacts"
+        }
+      },
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "impact_trigger_only": {
+        "prolonged_water:prolonged_water": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 119.6,
+          "latency_s_max": 119.9
+        },
+        "impact_burst:repeated_impacts": {
+          "planted": 30,
+          "detected": 29,
+          "detection_rate": 0.967,
+          "latency_s_median": 100.3,
+          "latency_s_max": 140.2
+        },
+        "fall:post_impact_silence": {
+          "planted": 30,
+          "detected": 9,
+          "detection_rate": 0.3,
+          "latency_s_median": 7.9,
+          "latency_s_max": 8.1
+        },
+        "fall:post_impact_inactivity": {
+          "planted": 30,
+          "detected": 3,
+          "detection_rate": 0.1,
+          "latency_s_median": 1557.8,
+          "latency_s_max": 1557.9
+        },
+        "stray_alerts_per_day": 0.0,
+        "stray_alerts": {
+          "by_kind": {},
+          "confident": 0
+        },
+        "side_alerts": {
+          "post_impact_inactivity": 6
+        }
+      },
+      "ideal_classifier": {
+        "fall:classifier_notified": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 0.0,
+          "latency_s_max": 0.0
+        },
+        "prolonged_water:prolonged_water": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 119.6,
+          "latency_s_max": 119.9
+        },
+        "impact_burst:repeated_impacts": {
+          "planted": 30,
+          "detected": 29,
+          "detection_rate": 0.967,
+          "latency_s_median": 100.3,
+          "latency_s_max": 140.2
+        },
+        "fall:post_impact_silence": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 7.9,
+          "latency_s_max": 11.1
+        },
+        "fall:post_impact_inactivity": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 124.8,
+          "latency_s_max": 127.9
+        },
+        "stray_alerts_per_day": 0.0,
+        "stray_alerts": {
+          "by_kind": {},
+          "confident": 0
+        },
+        "side_alerts": {
+          "post_impact_inactivity": 6
+        }
+      },
+      "weaker_classifier": {
+        "fall:classifier_notified": {
+          "planted": 30,
+          "detected": 24,
+          "detection_rate": 0.8,
+          "latency_s_median": 2.0,
+          "latency_s_max": 2.0
+        },
+        "prolonged_water:prolonged_water": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 119.6,
+          "latency_s_max": 119.9
+        },
+        "impact_burst:repeated_impacts": {
+          "planted": 30,
+          "detected": 29,
+          "detection_rate": 0.967,
+          "latency_s_median": 100.3,
+          "latency_s_max": 140.2
+        },
+        "fall:post_impact_silence": {
+          "planted": 30,
+          "detected": 27,
+          "detection_rate": 0.9,
+          "latency_s_median": 7.9,
+          "latency_s_max": 10.7
+        },
+        "fall:post_impact_inactivity": {
+          "planted": 30,
+          "detected": 24,
+          "detection_rate": 0.8,
+          "latency_s_median": 124.8,
+          "latency_s_max": 127.7
+        },
+        "stray_alerts_per_day": 0.0,
+        "stray_alerts": {
+          "by_kind": {},
+          "confident": 0
+        },
+        "side_alerts": {
+          "post_impact_inactivity": 6
+        },
+        "false_triggers": 48,
+        "false_trigger_alerts": 0
+      },
+      "real_classifier": {
+        "fall:classifier_notified": {
+          "planted": 30,
+          "detected": 28,
+          "detection_rate": 0.933,
+          "latency_s_median": 2.0,
+          "latency_s_max": 2.8
+        },
+        "prolonged_water:prolonged_water": {
+          "planted": 30,
+          "detected": 30,
+          "detection_rate": 1.0,
+          "latency_s_median": 119.6,
+          "latency_s_max": 119.9
+        },
+        "impact_burst:repeated_impacts": {
+          "planted": 30,
+          "detected": 29,
+          "detection_rate": 0.967,
+          "latency_s_median": 100.3,
+          "latency_s_max": 140.2
+        },
+        "fall:post_impact_silence": {
+          "planted": 30,
+          "detected": 28,
+          "detection_rate": 0.933,
+          "latency_s_median": 7.9,
+          "latency_s_max": 11.1
+        },
+        "fall:post_impact_inactivity": {
+          "planted": 30,
+          "detected": 28,
+          "detection_rate": 0.933,
+          "latency_s_median": 124.8,
+          "latency_s_max": 127.9
+        },
+        "stray_alerts_per_day": 1.47,
+        "stray_alerts": {
+          "by_kind": {
+            "post_impact_inactivity": 15
+          },
+          "confident": 15
+        },
+        "side_alerts": {
+          "post_impact_inactivity": 7
+        },
+        "false_triggers": 2865,
+        "false_trigger_alerts": 15,
+        "untouched_test_days": {
+          "alerts_per_day": 1.47,
+          "confident_alerts_per_day": 1.47,
+          "evidence_per_day": 12.65,
+          "alerts_by_kind": {
+            "post_impact_inactivity": 5
+          },
+          "false_triggers": 190,
+          "false_triggers_per_day": 55.91,
+          "false_trigger_alerts": 5,
+          "triggers": [
+            {
+              "local_time": "Thu 00:12:30",
+              "score": 0.786,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -41.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 03:19:56",
+              "score": 0.896,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -33.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 07:57:46",
+              "score": 0.973,
+              "top_class": "Speech",
+              "categories": [],
+              "level_dbfs": -21.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 07:59:43",
+              "score": 0.727,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -33.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 08:06:08",
+              "score": 0.733,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -38.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 08:15:50",
+              "score": 0.919,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -23.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 08:23:37",
+              "score": 0.987,
+              "top_class": "Thump, thud",
+              "categories": [
+                "impact"
+              ],
+              "level_dbfs": -33.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 08:25:06",
+              "score": 0.899,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -20.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 09:23:54",
+              "score": 0.999,
+              "top_class": "Thunderstorm",
+              "categories": [
+                "water"
+              ],
+              "level_dbfs": -46.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 09:24:25",
+              "score": 0.933,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -41.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 09:30:27",
+              "score": 0.705,
+              "top_class": "Explosion",
+              "categories": [],
+              "level_dbfs": -40.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 09:47:40",
+              "score": 0.989,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -42.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 09:47:52",
+              "score": 0.983,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -38.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 09:58:53",
+              "score": 0.917,
+              "top_class": "Heart sounds, heartbeat",
+              "categories": [],
+              "level_dbfs": -40.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 09:59:45",
+              "score": 0.828,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -48.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 10:11:41",
+              "score": 0.851,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -44.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 11:17:00",
+              "score": 0.712,
+              "top_class": "Vehicle",
+              "categories": [],
+              "level_dbfs": -32.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 13:46:41",
+              "score": 0.989,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -43.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 13:48:32",
+              "score": 0.998,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -46.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 13:48:53",
+              "score": 0.952,
+              "top_class": "Thunderstorm",
+              "categories": [
+                "water"
+              ],
+              "level_dbfs": -47.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 13:49:07",
+              "score": 0.907,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -44.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:00:56",
+              "score": 0.922,
+              "top_class": "Arrow",
+              "categories": [
+                "impact"
+              ],
+              "level_dbfs": -43.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:02:25",
+              "score": 0.751,
+              "top_class": "Rumble",
+              "categories": [],
+              "level_dbfs": -44.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:02:33",
+              "score": 0.994,
+              "top_class": "Music",
+              "categories": [],
+              "level_dbfs": -39.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:03:02",
+              "score": 0.718,
+              "top_class": "Thunderstorm",
+              "categories": [
+                "water"
+              ],
+              "level_dbfs": -44.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:03:17",
+              "score": 0.929,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -41.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:03:24",
+              "score": 0.863,
+              "top_class": "Thunderstorm",
+              "categories": [
+                "water"
+              ],
+              "level_dbfs": -42.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:03:37",
+              "score": 0.975,
+              "top_class": "Outside, rural or natural",
+              "categories": [],
+              "level_dbfs": -43.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:06:27",
+              "score": 0.981,
+              "top_class": "Rumble",
+              "categories": [],
+              "level_dbfs": -40.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:08:29",
+              "score": 1.0,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -37.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:08:45",
+              "score": 0.99,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -35.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:15:10",
+              "score": 0.969,
+              "top_class": "Rustle",
+              "categories": [],
+              "level_dbfs": -42.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:15:52",
+              "score": 0.978,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -35.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:44:04",
+              "score": 1.0,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -43.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:44:22",
+              "score": 0.971,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -40.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 14:59:36",
+              "score": 0.943,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -19.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 15:05:13",
+              "score": 0.946,
+              "top_class": "Hiss",
+              "categories": [],
+              "level_dbfs": -20.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 17:31:10",
+              "score": 0.884,
+              "top_class": "Door",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -18.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 17:36:39",
+              "score": 0.704,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -36.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 17:36:57",
+              "score": 0.684,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -20.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 17:37:19",
+              "score": 0.864,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -22.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 17:39:29",
+              "score": 0.861,
+              "top_class": "Breaking",
+              "categories": [
+                "impact"
+              ],
+              "level_dbfs": -15.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 17:41:54",
+              "score": 0.872,
+              "top_class": "Dishes, pots, and pans",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -28.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 17:46:57",
+              "score": 0.956,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -27.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 17:47:38",
+              "score": 0.765,
+              "top_class": "Hammer",
+              "categories": [],
+              "level_dbfs": -27.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 17:53:23",
+              "score": 0.955,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -35.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 17:59:59",
+              "score": 0.856,
+              "top_class": "Sliding door",
+              "categories": [],
+              "level_dbfs": -19.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 18:09:04",
+              "score": 0.982,
+              "top_class": "Rail transport",
+              "categories": [
+                "water"
+              ],
+              "level_dbfs": -25.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 18:10:53",
+              "score": 0.976,
+              "top_class": "Vehicle",
+              "categories": [],
+              "level_dbfs": -21.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 18:15:14",
+              "score": 0.69,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -28.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 18:28:11",
+              "score": 0.782,
+              "top_class": "Dishes, pots, and pans",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -31.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 18:28:50",
+              "score": 0.854,
+              "top_class": "Inside, large room or hall",
+              "categories": [],
+              "level_dbfs": -26.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 18:30:41",
+              "score": 0.839,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -28.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 18:34:46",
+              "score": 0.769,
+              "top_class": "Dishes, pots, and pans",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -20.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 18:37:10",
+              "score": 0.81,
+              "top_class": "Sliding door",
+              "categories": [
+                "impact",
+                "household"
+              ],
+              "level_dbfs": -34.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 18:43:06",
+              "score": 0.854,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -35.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 18:43:44",
+              "score": 0.773,
+              "top_class": "Hiss",
+              "categories": [],
+              "level_dbfs": -39.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 18:59:29",
+              "score": 0.852,
+              "top_class": "Speech",
+              "categories": [],
+              "level_dbfs": -33.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 21:57:40",
+              "score": 0.712,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -29.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 21:57:50",
+              "score": 0.683,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -38.5,
+              "became_alert": true
+            },
+            {
+              "local_time": "Thu 22:04:05",
+              "score": 0.88,
+              "top_class": "Knock",
+              "categories": [
+                "impact",
+                "household"
+              ],
+              "level_dbfs": -20.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 22:08:04",
+              "score": 0.958,
+              "top_class": "Rail transport",
+              "categories": [],
+              "level_dbfs": -23.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 22:14:32",
+              "score": 0.82,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -37.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 22:31:32",
+              "score": 0.696,
+              "top_class": "Ping",
+              "categories": [],
+              "level_dbfs": -31.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 22:33:48",
+              "score": 0.694,
+              "top_class": "Sliding door",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -34.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 22:33:55",
+              "score": 0.883,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -21.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Thu 22:36:26",
+              "score": 0.925,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -30.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 09:47:40",
+              "score": 0.936,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -43.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 09:57:30",
+              "score": 0.703,
+              "top_class": "Outside, rural or natural",
+              "categories": [],
+              "level_dbfs": -45.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 09:59:04",
+              "score": 0.748,
+              "top_class": "Vehicle",
+              "categories": [],
+              "level_dbfs": -41.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 09:59:10",
+              "score": 0.993,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -38.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 09:59:48",
+              "score": 0.993,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -43.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 10:46:23",
+              "score": 0.715,
+              "top_class": "Clip-clop",
+              "categories": [
+                "footsteps"
+              ],
+              "level_dbfs": -40.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 10:46:43",
+              "score": 0.996,
+              "top_class": "Music",
+              "categories": [],
+              "level_dbfs": -36.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 10:46:58",
+              "score": 0.856,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -41.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 10:48:40",
+              "score": 0.788,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -28.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 10:49:08",
+              "score": 0.709,
+              "top_class": "Inside, large room or hall",
+              "categories": [],
+              "level_dbfs": -42.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 10:49:36",
+              "score": 0.961,
+              "top_class": "Clip-clop",
+              "categories": [],
+              "level_dbfs": -37.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 10:49:54",
+              "score": 0.893,
+              "top_class": "Eruption",
+              "categories": [],
+              "level_dbfs": -39.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 10:50:00",
+              "score": 0.679,
+              "top_class": "Inside, large room or hall",
+              "categories": [],
+              "level_dbfs": -31.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 10:50:24",
+              "score": 0.692,
+              "top_class": "Hammer",
+              "categories": [],
+              "level_dbfs": -35.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 11:07:31",
+              "score": 0.77,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -35.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 11:08:05",
+              "score": 0.691,
+              "top_class": "Dishes, pots, and pans",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -27.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 11:58:01",
+              "score": 0.911,
+              "top_class": "Inside, large room or hall",
+              "categories": [],
+              "level_dbfs": -41.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 11:58:07",
+              "score": 0.957,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -41.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 11:58:49",
+              "score": 0.793,
+              "top_class": "Vehicle",
+              "categories": [],
+              "level_dbfs": -37.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 12:44:17",
+              "score": 0.669,
+              "top_class": "Tambourine",
+              "categories": [],
+              "level_dbfs": -24.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 12:48:19",
+              "score": 0.667,
+              "top_class": "Rail transport",
+              "categories": [],
+              "level_dbfs": -25.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 12:50:36",
+              "score": 0.954,
+              "top_class": "Inside, large room or hall",
+              "categories": [],
+              "level_dbfs": -20.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 13:06:44",
+              "score": 0.705,
+              "top_class": "Percussion",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -38.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 13:09:11",
+              "score": 0.752,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -35.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 13:11:59",
+              "score": 0.747,
+              "top_class": "Hammer",
+              "categories": [],
+              "level_dbfs": -26.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 13:20:43",
+              "score": 0.989,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -24.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 13:26:28",
+              "score": 0.801,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -21.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 13:31:04",
+              "score": 0.986,
+              "top_class": "Speech",
+              "categories": [
+                "speech"
+              ],
+              "level_dbfs": -32.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 13:31:11",
+              "score": 0.958,
+              "top_class": "Speech",
+              "categories": [
+                "speech"
+              ],
+              "level_dbfs": -19.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 14:24:36",
+              "score": 0.992,
+              "top_class": "Rustle",
+              "categories": [],
+              "level_dbfs": -41.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 14:24:43",
+              "score": 0.981,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -41.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 14:32:21",
+              "score": 0.716,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -47.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 14:38:12",
+              "score": 0.682,
+              "top_class": "Rustle",
+              "categories": [],
+              "level_dbfs": -44.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 14:38:26",
+              "score": 1.0,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -32.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 14:39:04",
+              "score": 0.898,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -44.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 14:39:19",
+              "score": 0.857,
+              "top_class": "Thunderstorm",
+              "categories": [],
+              "level_dbfs": -36.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 14:58:20",
+              "score": 0.989,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -20.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 14:59:21",
+              "score": 0.718,
+              "top_class": "Speech",
+              "categories": [
+                "speech"
+              ],
+              "level_dbfs": -21.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 14:59:39",
+              "score": 0.896,
+              "top_class": "Drawer open or close",
+              "categories": [
+                "speech",
+                "household"
+              ],
+              "level_dbfs": -37.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 15:00:26",
+              "score": 0.928,
+              "top_class": "Speech",
+              "categories": [
+                "speech"
+              ],
+              "level_dbfs": -27.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 15:03:16",
+              "score": 0.998,
+              "top_class": "Drum",
+              "categories": [],
+              "level_dbfs": -23.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 17:46:55",
+              "score": 0.922,
+              "top_class": "Tambourine",
+              "categories": [],
+              "level_dbfs": -31.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 17:50:09",
+              "score": 0.687,
+              "top_class": "Cutlery, silverware",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -24.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 17:51:21",
+              "score": 0.755,
+              "top_class": "Microwave oven",
+              "categories": [],
+              "level_dbfs": -27.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 17:51:34",
+              "score": 0.974,
+              "top_class": "Percussion",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -30.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 17:51:48",
+              "score": 0.999,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -27.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 17:54:24",
+              "score": 0.75,
+              "top_class": "Sliding door",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -29.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 17:55:32",
+              "score": 0.905,
+              "top_class": "Dishes, pots, and pans",
+              "categories": [],
+              "level_dbfs": -33.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 17:58:57",
+              "score": 0.69,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -25.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 18:09:34",
+              "score": 0.931,
+              "top_class": "Drawer open or close",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -29.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 18:26:23",
+              "score": 0.918,
+              "top_class": "Drum",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -21.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 20:42:06",
+              "score": 0.704,
+              "top_class": "Speech",
+              "categories": [
+                "speech"
+              ],
+              "level_dbfs": -35.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 20:50:48",
+              "score": 0.84,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -30.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 20:53:33",
+              "score": 0.693,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -37.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 21:02:46",
+              "score": 0.871,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -33.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 21:03:04",
+              "score": 0.914,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -36.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 22:51:41",
+              "score": 0.696,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -32.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 22:51:58",
+              "score": 0.876,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -39.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 22:53:10",
+              "score": 0.797,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -38.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Fri 22:57:00",
+              "score": 0.968,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -21.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 02:15:48",
+              "score": 0.75,
+              "top_class": "Bathtub (filling or washing)",
+              "categories": [
+                "water"
+              ],
+              "level_dbfs": -23.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 05:18:28",
+              "score": 0.693,
+              "top_class": "Music",
+              "categories": [],
+              "level_dbfs": -38.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 11:44:19",
+              "score": 0.895,
+              "top_class": "Sliding door",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -29.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 11:44:31",
+              "score": 0.722,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -23.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 11:49:10",
+              "score": 0.758,
+              "top_class": "Stir",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -41.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 11:58:35",
+              "score": 0.883,
+              "top_class": "Dishes, pots, and pans",
+              "categories": [],
+              "level_dbfs": -20.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 12:05:40",
+              "score": 0.985,
+              "top_class": "Vehicle",
+              "categories": [],
+              "level_dbfs": -26.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 12:06:03",
+              "score": 0.994,
+              "top_class": "Music",
+              "categories": [],
+              "level_dbfs": -29.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 12:10:30",
+              "score": 0.855,
+              "top_class": "Toilet flush",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -22.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 13:41:23",
+              "score": 0.99,
+              "top_class": "Percussion",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -26.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 13:42:30",
+              "score": 0.994,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -37.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 13:58:34",
+              "score": 0.793,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -32.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 14:36:33",
+              "score": 0.668,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -28.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 14:38:11",
+              "score": 0.996,
+              "top_class": "Drum",
+              "categories": [],
+              "level_dbfs": -29.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 14:39:40",
+              "score": 0.848,
+              "top_class": "Inside, large room or hall",
+              "categories": [],
+              "level_dbfs": -34.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 14:45:52",
+              "score": 0.663,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -25.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 14:56:20",
+              "score": 0.997,
+              "top_class": "Tambourine",
+              "categories": [],
+              "level_dbfs": -21.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 14:58:20",
+              "score": 0.963,
+              "top_class": "Vehicle",
+              "categories": [],
+              "level_dbfs": -31.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 15:11:22",
+              "score": 0.97,
+              "top_class": "Rail transport",
+              "categories": [],
+              "level_dbfs": -28.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 15:11:37",
+              "score": 0.771,
+              "top_class": "Dishes, pots, and pans",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -27.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 15:12:45",
+              "score": 0.839,
+              "top_class": "Drum",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -20.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 15:13:04",
+              "score": 0.726,
+              "top_class": "Door",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -32.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 15:13:17",
+              "score": 0.936,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -20.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 15:14:11",
+              "score": 0.992,
+              "top_class": "Beatboxing",
+              "categories": [],
+              "level_dbfs": -19.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 15:16:22",
+              "score": 0.976,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -21.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 15:26:24",
+              "score": 0.991,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -34.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 15:26:33",
+              "score": 0.95,
+              "top_class": "Fireworks",
+              "categories": [],
+              "level_dbfs": -20.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 16:19:23",
+              "score": 0.848,
+              "top_class": "Toilet flush",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -30.2,
+              "became_alert": true
+            },
+            {
+              "local_time": "Sat 16:31:41",
+              "score": 0.687,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -29.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 16:56:08",
+              "score": 0.892,
+              "top_class": "Car",
+              "categories": [],
+              "level_dbfs": -27.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 17:17:59",
+              "score": 0.985,
+              "top_class": "Animal",
+              "categories": [],
+              "level_dbfs": -33.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 17:34:04",
+              "score": 0.942,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -35.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 18:29:55",
+              "score": 0.824,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -33.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 19:08:20",
+              "score": 0.807,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -43.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 20:06:45",
+              "score": 0.732,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -38.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 22:03:36",
+              "score": 0.864,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -26.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 22:04:51",
+              "score": 0.883,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -22.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 22:06:17",
+              "score": 0.878,
+              "top_class": "Dishes, pots, and pans",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -32.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 22:42:41",
+              "score": 0.968,
+              "top_class": "Inside, large room or hall",
+              "categories": [],
+              "level_dbfs": -25.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 22:44:37",
+              "score": 0.965,
+              "top_class": "Speech",
+              "categories": [],
+              "level_dbfs": -33.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 22:48:46",
+              "score": 0.81,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -31.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 22:48:57",
+              "score": 0.802,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -36.1,
+              "became_alert": true
+            },
+            {
+              "local_time": "Sat 22:51:18",
+              "score": 0.741,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -44.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 22:53:21",
+              "score": 0.989,
+              "top_class": "Percussion",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -22.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 23:18:36",
+              "score": 0.97,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -21.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sat 23:18:49",
+              "score": 0.919,
+              "top_class": "Drum",
+              "categories": [],
+              "level_dbfs": -35.8,
+              "became_alert": true
+            },
+            {
+              "local_time": "Sun 00:04:47",
+              "score": 0.966,
+              "top_class": "Thump, thud",
+              "categories": [
+                "impact",
+                "household"
+              ],
+              "level_dbfs": -33.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 02:03:38",
+              "score": 0.827,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -43.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 02:49:53",
+              "score": 0.81,
+              "top_class": "Door",
+              "categories": [
+                "household"
+              ],
+              "level_dbfs": -22.8,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 08:31:28",
+              "score": 0.999,
+              "top_class": "Timpani",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -35.0,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 08:31:39",
+              "score": 0.998,
+              "top_class": "Timpani",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -40.0,
+              "became_alert": true
+            },
+            {
+              "local_time": "Sun 08:36:20",
+              "score": 0.896,
+              "top_class": "Drum",
+              "categories": [],
+              "level_dbfs": -20.5,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 08:56:58",
+              "score": 0.928,
+              "top_class": "Thump, thud",
+              "categories": [
+                "impact"
+              ],
+              "level_dbfs": -42.6,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 08:57:16",
+              "score": 0.97,
+              "top_class": "Thump, thud",
+              "categories": [
+                "impact"
+              ],
+              "level_dbfs": -46.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 09:00:53",
+              "score": 0.983,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -19.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 09:01:05",
+              "score": 0.737,
+              "top_class": "Inside, small room",
+              "categories": [],
+              "level_dbfs": -21.9,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 09:02:09",
+              "score": 0.989,
+              "top_class": "Music",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -34.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 09:02:22",
+              "score": 0.957,
+              "top_class": "Drum",
+              "categories": [],
+              "level_dbfs": -30.7,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 09:03:23",
+              "score": 0.915,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -39.4,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 09:19:02",
+              "score": 0.736,
+              "top_class": "Drum",
+              "categories": [
+                "media"
+              ],
+              "level_dbfs": -37.2,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 09:20:17",
+              "score": 0.796,
+              "top_class": "Thump, thud",
+              "categories": [
+                "impact"
+              ],
+              "level_dbfs": -40.1,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 09:20:23",
+              "score": 0.93,
+              "top_class": "Door",
+              "categories": [],
+              "level_dbfs": -20.3,
+              "became_alert": false
+            },
+            {
+              "local_time": "Sun 09:32:46",
+              "score": 0.857,
+              "top_class": "Percussion",
+              "categories": [],
+              "level_dbfs": -21.0,
+              "became_alert": false
+            }
+          ]
+        }
+      }
+    }
+  }
+}

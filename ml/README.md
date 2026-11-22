@@ -56,6 +56,20 @@ python -m src.anomaly.evaluate --calibration $S/2017-01-{30,31}.npz $S/2017-02-0
 python -m src.anomaly.evaluate --calibration $S/2017-01-31.npz $S/2017-02-0{1,2}.npz \
     --test $S/2017-02-0{3,4,5}.npz --falls $SAFE/falls.npz --timezone Europe/Brussels \
     --parts tuning --plant-seeds 0 1 --out reports/anomaly-sins-node6-tuning
+# real fall classifier instead of the stand-ins (task 9): models/fall_classifier.tflite + .json from the
+# fall-classifier-v1 release; only SAFE's test folds 09-10 are planted (the classifier trained on 01-07)
+F=(--falls $SAFE/falls.npz --safe-wavs data/safe --safe-folds 9 10 --fall-model models/fall_classifier.tflite)
+python -m src.anomaly.evaluate --calibration $S/2017-01-31.npz $S/2017-02-0{1,2}.npz \
+    --test $S/2017-02-0{3,4,5}.npz "${F[@]}" --timezone Europe/Brussels --plant-seeds 0 1 2 \
+    --parts behavioural classifier --fall-thresholds 0.5 0.8 0.9 0.95 0.99 \
+    --out reports/anomaly-sins-node6-fall-classifier
+python -m src.anomaly.evaluate --calibration $S/2017-01-{30,31}.npz $S/2017-02-01.npz \
+    --test $S/2017-02-0{2,3,4,5}.npz "${F[@]}" --timezone Europe/Brussels --plant-seeds 0 1 2 \
+    --parts behavioural --out reports/anomaly-sins-node6-split2-fall-classifier
+python -m src.anomaly.evaluate --calibration $S/2017-01-31.npz $S/2017-02-0{1,2}.npz \
+    --test $S/2017-02-0{3,4,5}.npz "${F[@]}" --timezone Europe/Brussels --plant-seeds 0 1 2 \
+    --parts tuning --variants defaults strong_max_60s strong_max_300s \
+    --out reports/anomaly-sins-node6-tuning-fall-classifier
 # smoke test of the harness on simulated frames (numbers mean nothing)
 python -m src.anomaly.evaluate --synthetic --out reports/anomaly-synthetic
 pytest -q                      # harness tests (CI runs them without TensorFlow)
