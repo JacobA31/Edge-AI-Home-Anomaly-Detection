@@ -10,6 +10,7 @@ it pulls `main` itself, so nothing on campus Wi-Fi needs to accept incoming conn
 edge/
 ├── src/e3_edge/
 │   ├── __main__.py     main loop (python -m e3_edge)
+│   ├── runtime.py      live frame source, heartbeat scheduling, and cleanup
 │   ├── config.py       reads config.yaml
 │   ├── events.py       builds events that match shared/event.schema.json
 │   ├── outbox.py       SQLite queue for outages (events only, never audio)
@@ -61,8 +62,8 @@ Use `pad_end=True` only for an incomplete final window. Keep microphone streams 
 `MicrophoneCapture` provides 16 kHz mono float32 blocks with ADC-based UTC timestamps.
 `WindowAssembler` consumes those blocks and emits complete 15,600-sample windows with a
 7,680-sample hop. Each waveform spans 0.975 seconds; YAMNet's spectrogram patch spans 0.96 seconds.
-Neither component stores audio on disk or transmits it. Wiring them into the application loop
-and separating inference from network sending remain integration work.
+Neither component stores audio on disk or transmits it. The application loop connects both
+components to YAMNet and sends metadata heartbeats independently of audio processing.
 
 For example, with the model installed (`cfg` and `audio` as above):
 
@@ -100,13 +101,45 @@ overlap and start a fresh segment. The first complete window in that segment has
 Within a segment timestamps increase by 0.48 seconds; clock corrections on restart may change
 UTC ordering across segments. Absolute timestamp accuracy still requires validation on the Pi.
 
+### Application loop
+
+`python -m e3_edge` loads the configured local YAMNet model once, opens the selected microphone,
+and runs capture → overlapping windows → `AudioPipeline`. Set `audio.device`, `audio.block_size`,
+and `audio.buffer_blocks` in `config.yaml`; the format remains fixed at 16 kHz mono float32.
+Model installation remains a separate step; startup never downloads a missing model.
+
+The PortAudio callback only fills the bounded capture ring. The application thread assembles
+windows and runs inference sequentially. A separate daemon sender thread reads the event outbox
+using its own SQLite connection, so a slow HTTP request does not block inference. It retries
+pending events every second, retaining the original event IDs and detection timestamps.
+
+Heartbeats use a monotonic schedule and contain only audio status, processed frame count, and
+drop/overflow counters. The runtime does not retain a history of frames. If an active stream
+provides no available audio for five seconds, or capture, inference, a consumer callback, or the
+sender fails, the process exits after cleanup so the existing systemd unit can restart it.
+
+SIGINT and SIGTERM request shutdown. The loop stops between processing operations, closes the
+microphone, clears partial audio, and stops the sender. Sender shutdown waits at most one second
+for an in-flight request; unacknowledged events remain on disk for retry. Inference and downstream
+callbacks already executing must return before cleanup can finish. Physical GPIO mute and the
+visible monitoring indicator remain separate integration work.
+
+The default entry point generates frames and metadata heartbeats. It does **not** enable fall or
+anomaly alerts: the Event Manager's final fusion/risk policy has not been agreed. Downstream code
+can call `e3_edge.runtime.run(cfg, on_frame=consume_frame, on_gap=interrupt_detection)` to receive
+each `Frame` and interrupt temporal state before the first frame of a new segment. These callbacks
+run on the processing thread and should finish promptly. The caller is responsible for handling
+detector outputs; callback return values are ignored. No raw audio is sent to callbacks, storage,
+or the backend.
+
 ### Focused tests
 
 Run from `edge/` with its environment activated. These checks require no downloads;
 real-model checks are skipped unless a model path is supplied:
 
 ```bash
-python -m pytest tests/test_audio*.py tests/test_config.py tests/test_model_download.py -q
+python -m pytest tests/test_audio*.py tests/test_main.py tests/test_sender.py \
+    tests/test_outbox.py tests/test_config.py tests/test_model_download.py -q
 ```
 
 After exporting YAMNet in `ml/`, include the real-model check:

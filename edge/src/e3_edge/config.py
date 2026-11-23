@@ -1,4 +1,6 @@
 from dataclasses import dataclass, field
+from math import isfinite
+from numbers import Real
 from pathlib import Path
 
 import yaml
@@ -70,6 +72,36 @@ class Config:
     anomaly: dict = field(default_factory=dict)  # raw `anomaly:` section, see e3_edge.anomaly.config
     yamnet: YAMNetConfig = field(default_factory=YAMNetConfig)
     fall_classifier: FallClassifierConfig = field(default_factory=FallClassifierConfig)
+    audio_device: int | str | None = None
+    audio_block_size: int = 1024
+    audio_buffer_blocks: int = 32
+
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.sample_rate, bool)
+            or not isinstance(self.sample_rate, int)
+            or self.sample_rate != 16000
+        ):
+            raise ValueError("audio.sample_rate must be 16000 Hz")
+        device = self.audio_device
+        if device is not None and (
+            isinstance(device, bool)
+            or not isinstance(device, (int, str))
+            or (isinstance(device, int) and device < 0)
+            or (isinstance(device, str) and not device.strip())
+        ):
+            raise ValueError("audio.device must be an input device index, name, or null")
+        sizes = (("block_size", self.audio_block_size), ("buffer_blocks", self.audio_buffer_blocks))
+        for name, value in sizes:
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise ValueError(f"audio.{name} must be a positive integer")
+        if (
+            isinstance(self.heartbeat_seconds, bool)
+            or not isinstance(self.heartbeat_seconds, Real)
+            or not isfinite(self.heartbeat_seconds)
+            or self.heartbeat_seconds <= 0
+        ):
+            raise ValueError("heartbeat_seconds must be finite and positive")
 
 
 def _load_yamnet(raw) -> YAMNetConfig:
@@ -98,15 +130,27 @@ def _load_fall_classifier(raw) -> FallClassifierConfig:
 
 def load(path: Path = DEFAULT_PATH) -> Config:
     raw = yaml.safe_load(path.read_text())
+    audio = raw.get("audio")
+    if audio is None:
+        audio = {}
+    if not isinstance(audio, dict):
+        raise ValueError("audio must be a mapping")
+    unknown = audio.keys() - {"sample_rate", "device", "block_size", "buffer_blocks"}
+    if unknown:
+        names = ", ".join(sorted(str(name) for name in unknown))
+        raise ValueError(f"Unknown audio settings: {names}")
     return Config(
         device_id=raw["device_id"],
         room=raw["room"],
         backend_url=raw["backend"]["url"].rstrip("/"),
         function_key=raw["backend"]["function_key"],
         queue_db=raw["storage"]["queue_db"],
-        sample_rate=raw.get("audio", {}).get("sample_rate", 16000),
+        sample_rate=audio.get("sample_rate", 16000),
         heartbeat_seconds=raw.get("heartbeat_seconds", 90),
         anomaly=raw.get("anomaly") or {},
         yamnet=_load_yamnet(raw.get("yamnet")),
         fall_classifier=_load_fall_classifier(raw.get("fall_classifier")),
+        audio_device=audio.get("device"),
+        audio_block_size=audio.get("block_size", 1024),
+        audio_buffer_blocks=audio.get("buffer_blocks", 32),
     )

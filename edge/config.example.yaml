@@ -9,6 +9,8 @@ backend:
 audio:
   sample_rate: 16000
   device: ReSpeaker   # part of the input device name; see `python -m sounddevice`
+  block_size: 1024    # callback samples; independent of model windows/hop
+  buffer_blocks: 32   # bounded RAM capture ring: 2.048 s at these defaults
 
 # Publish yamnet.tflite as an asset of this GitHub Release.
 # model_path is both the intended download destination and the runner's input file on the Pi.

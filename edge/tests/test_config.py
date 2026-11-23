@@ -187,3 +187,45 @@ def test_classifier_rejects_invalid_or_unknown_settings(tmp_path, settings, sect
     settings["fall_classifier"] = section
     with pytest.raises(ValueError, match="fall_classifier"):
         config.load(write_config(tmp_path, settings))
+
+
+@pytest.mark.parametrize("device", [None, 0, "ReSpeaker"])
+def test_audio_device_and_buffer_settings_are_loaded(tmp_path, settings, device):
+    settings["audio"].update(device=device, block_size=512, buffer_blocks=8)
+    cfg = config.load(write_config(tmp_path, settings))
+    assert cfg.audio_device == device
+    assert cfg.audio_block_size == 512 and cfg.audio_buffer_blocks == 8
+
+
+@pytest.mark.parametrize("section", [None, {}])
+def test_absent_or_empty_audio_settings_keep_capture_defaults(tmp_path, settings, section):
+    settings["audio"] = section
+    cfg = config.load(write_config(tmp_path, settings))
+    assert cfg.sample_rate == 16000 and cfg.audio_device is None
+    assert cfg.audio_block_size == 1024 and cfg.audio_buffer_blocks == 32
+
+
+@pytest.mark.parametrize("name, value", [
+    ("sample_rate", 48000), ("sample_rate", True), ("sample_rate", 16000.0),
+    ("device", True), ("device", -1), ("device", " "), ("device", 1.5),
+    ("block_size", 0), ("block_size", 1.5), ("block_size", True),
+    ("buffer_blocks", 0), ("buffer_blocks", -1), ("buffer_blocks", None),
+])
+def test_invalid_audio_settings_fail_before_capture(tmp_path, settings, name, value):
+    settings["audio"][name] = value
+    with pytest.raises(ValueError, match=f"audio.{name}"):
+        config.load(write_config(tmp_path, settings))
+
+
+@pytest.mark.parametrize("section", [False, [], "ReSpeaker", {"devcie": "ReSpeaker"}])
+def test_audio_settings_reject_invalid_sections_or_unknown_keys(tmp_path, settings, section):
+    settings["audio"] = section
+    with pytest.raises(ValueError, match="audio"):
+        config.load(write_config(tmp_path, settings))
+
+
+@pytest.mark.parametrize("seconds", [0, -1, True, "90", None, float("inf"), float("nan")])
+def test_heartbeat_interval_must_be_finite_and_positive(tmp_path, settings, seconds):
+    settings["heartbeat_seconds"] = seconds
+    with pytest.raises(ValueError, match="heartbeat_seconds"):
+        config.load(write_config(tmp_path, settings))

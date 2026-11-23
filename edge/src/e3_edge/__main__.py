@@ -1,34 +1,29 @@
-"""Main loop: python -m e3_edge
-
-TODO(member1): audio capture thread (sounddevice → ring buffer)
-TODO(member3): fall model (YAMNet embeddings + classifier, LiteRT)
-Baseline + anomaly detection is ready in e3_edge.anomaly (AnomalyService, one per microphone).
-TODO(member1/member4): once YAMNet frames exist, pass each one to AnomalyService.process()
-  and hand the result to the event manager; see docs/anomaly-detection.md, "Integration".
-"""
+"""Run continuous microphone capture and local YAMNet inference: python -m e3_edge."""
 
 import logging
-import time
+import signal
+from threading import Event
 
 from . import config
-from .events import make_event
-from .outbox import Outbox
-from .sender import flush
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+from .runtime import run
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = config.load()
-    outbox = Outbox(cfg.queue_db)
-    last_heartbeat = 0.0
-    while True:
-        now = time.monotonic()
-        if now - last_heartbeat >= cfg.heartbeat_seconds:
-            outbox.put(make_event(cfg.device_id, cfg.room, "heartbeat"))
-            last_heartbeat = now
-        flush(outbox, cfg)
-        time.sleep(1)
+    stop = Event()
+
+    def request_stop(signum, frame):
+        stop.set()
+
+    previous = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
+    try:
+        for sig in previous:
+            signal.signal(sig, request_stop)
+        run(cfg, stop_event=stop)
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
 
 
 if __name__ == "__main__":
