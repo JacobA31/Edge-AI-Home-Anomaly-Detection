@@ -3,6 +3,16 @@
   "Values": {
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "AUTH_ALLOWED_ORIGINS": "http://localhost:5173",
+    "DEVICE_OFFLINE_AFTER_SECONDS": "270",
+    "EMAIL_MODE": "preview",
+    "DASHBOARD_URL": "http://localhost:5173",
+    "SMTP_HOST": "",
+    "SMTP_PORT": "587",
+    "SMTP_SECURITY": "starttls",
+    "SMTP_USERNAME": "",
+    "SMTP_PASSWORD": "",
+    "SMTP_FROM_EMAIL": "",
     "DATABASE_URL": "postgresql://e3admin:CHANGE_ME@localhost:5432/e3?sslmode=disable"
   },
   "Host": {

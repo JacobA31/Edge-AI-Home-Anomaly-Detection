@@ -8,3 +8,5 @@ local.settings.example.json
 requirements-dev.txt
 pyproject.toml
 README.md
+reports/
+verify_timing.py
