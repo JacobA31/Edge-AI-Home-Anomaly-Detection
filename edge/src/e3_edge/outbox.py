@@ -36,6 +36,16 @@ class Outbox:
     def __len__(self) -> int:
         return self.db.execute("SELECT COUNT(*) FROM outbox").fetchone()[0]
 
+    def close(self) -> None:
+        """Release this thread's database connection; safe to call more than once."""
+        self.db.close()
+
+    def __enter__(self) -> "Outbox":
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.close()
+
 
 def with_elapsed(event: dict, now: datetime | None = None) -> dict:
     """Fill elapsed_seconds at send time, as the proposal's event record requires."""
