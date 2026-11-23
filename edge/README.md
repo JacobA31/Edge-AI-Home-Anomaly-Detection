@@ -14,7 +14,7 @@ edge/
 │   ├── events.py       builds events that match shared/event.schema.json
 │   ├── outbox.py       SQLite queue for outages (events only, never audio)
 │   ├── sender.py       HTTPS POST to the backend with retries
-│   ├── audio/          preprocessing, LiteRT YAMNet, and frame creation
+│   ├── audio/          microphone capture, overlapping windows, and LiteRT YAMNet frames
 │   ├── fall_classifier/ LiteRT fall scoring and model/settings validation
 │   └── anomaly/        household baseline + acoustic/behavioural anomaly detection
 │                       (docs/anomaly-detection.md; CLI: python -m e3_edge.anomaly)
@@ -55,7 +55,50 @@ frame = audio.process_window(samples, start_time=window_start)
 ```
 
 Use `pad_end=True` only for an incomplete final window. Keep microphone streams separate.
-Microphone capture and wiring this into the main loop remain integration work for Matthew.
+
+### Continuous capture and windowing
+
+`MicrophoneCapture` provides 16 kHz mono float32 blocks with ADC-based UTC timestamps.
+`WindowAssembler` consumes those blocks and emits complete 15,600-sample windows with a
+7,680-sample hop. Each waveform spans 0.975 seconds; YAMNet's spectrogram patch spans 0.96 seconds.
+Neither component stores audio on disk or transmits it. Wiring them into the application loop
+and separating inference from network sending remain integration work.
+
+For example, with the model installed (`cfg` and `audio` as above):
+
+```python
+import time
+
+from e3_edge.audio.capture import MicrophoneCapture
+from e3_edge.audio.windowing import WindowAssembler
+
+windows = WindowAssembler()  # one per microphone
+try:
+    with MicrophoneCapture(device="ReSpeaker") as microphone:
+        while True:
+            block = microphone.read()
+            if block is None:
+                time.sleep(0.005)
+                continue
+            for window in windows.push(block):
+                # Interrupt downstream temporal detection on window.discontinuity.
+                frame = audio.process_window(window.samples, start_time=window.start_time)
+finally:
+    windows.reset()  # discard partial audio on shutdown or capture failure
+```
+
+The assembler retains one fixed 62,400-byte sample buffer; returned windows own their arrays.
+Consume or release returned windows promptly instead of accumulating them. Capture's default
+1,024-sample blocks yield at most one window per push, while larger blocks can yield several.
+No partial window is emitted or padded. Call `reset()` when monitoring is muted or stopped.
+
+Each continuous segment starts at its first block's UTC timestamp. Window timestamps advance
+using integer sample offsets, so callback chunk sizes and consumer delays do not affect the hop.
+Capture discontinuities, unexpected sample indices, and ADC/UTC drift over 10 ms discard old
+overlap and start a fresh segment. The first complete window in that segment has
+`discontinuity=True`; call `AnomalyService.pause()` before processing it once detection is wired in.
+Within a segment timestamps increase by 0.48 seconds; clock corrections on restart may change
+UTC ordering across segments. Absolute timestamp accuracy still requires validation on the Pi.
 
 ### Focused tests
 

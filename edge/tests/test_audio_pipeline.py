@@ -8,6 +8,8 @@ import pytest
 
 from e3_edge.anomaly.frames import Frame
 from e3_edge.audio import pipeline
+from e3_edge.audio.capture import CapturedBlock
+from e3_edge.audio.windowing import WindowAssembler
 
 
 @pytest.fixture
@@ -47,6 +49,28 @@ def test_complete_window_becomes_a_frame_with_aligned_outputs(fake_yamnet):
     assert fake_yamnet.calls[0].dtype == np.float32
     np.testing.assert_array_equal(fake_yamnet.calls[0], clean)
     np.testing.assert_array_equal(samples, original)
+
+
+def test_capture_blocks_become_overlapping_pipeline_frames(fake_yamnet):
+    audio = pipeline.AudioPipeline("model.tflite")
+    assembler = WindowAssembler()
+    samples = np.tile(np.array([-0.25, 0.25], dtype=np.float32), (15600 + 2 * 7680) // 2)
+    frames = []
+    for index in range(0, len(samples), 1024):
+        captured = CapturedBlock(
+            samples=samples[index:index + 1024], start_time=1700000000.0 + index / 16000,
+            adc_time=100.0 + index / 16000, sample_index=index, discontinuity=index == 0,
+        )
+        for window in assembler.push(captured):
+            frames.append(audio.process_window(window.samples, start_time=window.start_time))
+    assert fake_yamnet.loads == [("model.tflite", 1)]
+    assert len(frames) == len(fake_yamnet.calls) == 3
+    for i, frame in enumerate(frames):
+        assert frame.t == 1700000000.0 + i * 7680 / 16000
+        assert frame.level_dbfs == pytest.approx(20 * np.log10(0.25))
+        assert np.all(frame.embedding == 0.25)
+        assert frame.scores.shape == (521,)
+        np.testing.assert_array_equal(fake_yamnet.calls[i], samples[i * 7680:i * 7680 + 15600])
 
 
 def test_stereo_and_clipping_use_the_same_samples_for_yamnet_and_level(fake_yamnet):
